@@ -52,7 +52,7 @@
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
                     <span class="text-sm font-bold text-gray-700 dark:text-gray-200">Subir Archivo JSON</span>
-                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Selecciona y filtra tus textos fácilmente</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Solo se extraerán las respuestas de Qwen</span>
                     <input type="file" id="file-input" accept=".json,.txt" class="hidden" onchange="handleFileSelect(event)">
                 </label>
             </div>
@@ -63,7 +63,7 @@
             </div>
         </div>
 
-        <!-- VISTA 2: SELECTOR / CURADOR DE CAPÍTULOS (NUEVO) -->
+        <!-- VISTA 2: SELECTOR / CURADOR DE CAPÍTULOS -->
         <div id="view-selector" class="hidden flex-1 flex flex-col pb-20">
             <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur sticky top-0 z-10">
                 <div class="flex items-center">
@@ -73,7 +73,7 @@
                 <button onclick="saveCuratedBook()" class="px-3 py-1.5 bg-wattpad-orange text-white text-xs font-bold rounded-xl shadow-md">Guardar Libro</button>
             </div>
             <div class="px-6 py-3 bg-orange-50 dark:bg-wattpad-orange/10 border-b border-orange-100 dark:border-wattpad-orange/20 text-xs text-wattpad-orange font-medium">
-                Desmarca los mensajes que sean tus prompts o instrucciones para que no aparezcan en la lectura.
+                Se han filtrado automáticamente las respuestas de Qwen. Revisa y desmarca cualquier bloque sobrante.
             </div>
             <div class="px-6 py-4 flex-1 overflow-y-auto space-y-3" id="selector-list">
                 <!-- Generado dinámicamente -->
@@ -179,7 +179,7 @@
             reader.onload = function(e) {
                 try {
                     const rawData = JSON.parse(e.target.result);
-                    extractAllBlocks(rawData, file.name);
+                    extractQwenAssistantBlocks(rawData, file.name);
                 } catch (err) {
                     alert("Error al leer el archivo JSON.");
                 }
@@ -187,40 +187,55 @@
             reader.readAsText(file);
         }
 
-        function extractAllBlocks(data, fileName) {
+        /**
+         * Función adaptada para extraer EXCLUSIVAMENTE las respuestas del asistente (Qwen),
+         * analizando la estructura de nodos e ignorando prompts o mensajes de usuario.
+         */
+        function extractQwenAssistantBlocks(data, fileName) {
             tempExtractedItems = [];
             let globalTitle = fileName.replace('.json', '');
 
             function recurse(obj) {
                 if (!obj || typeof obj !== 'object') return;
+                
                 if (Array.isArray(obj)) {
                     obj.forEach(item => recurse(item));
                     return;
                 }
 
+                // Identificar propiedades típicas de rol y contenido en Qwen/JSONs de chat
                 let role = (obj.role || obj.type || obj.author_role || '').toLowerCase();
                 let txt = obj.content || obj.text || obj.message || obj.value;
 
-                if (typeof txt === 'string' && txt.trim().length > 30) {
+                // Verificamos si el objeto representa un mensaje del asistente (o si su contenido no proviene de un usuario)
+                let isAssistant = role === 'assistant' || role === 'model' || role === 'bot';
+                let isUser = role === 'user' || role === 'human';
+
+                // Si detectamos explícitamente que es un nodo de mensaje de texto largo
+                if (typeof txt === 'string' && txt.trim().length > 20) {
                     let cleanTxt = txt.trim();
-                    // Auto-detectar si es asistente o texto largo de novela
-                    let isUser = role === 'user' || role === 'human' || cleanTxt.toLowerCase().startsWith("traduce") || cleanTxt.toLowerCase().startsWith("actúa");
-                    
-                    tempExtractedItems.push({
-                        text: cleanTxt,
-                        selected: !isUser // Seleccionado por defecto si no es usuario
-                    });
+
+                    // Si el rol es claramente de asistente, o si no tiene rol explícito pero sabemos que no es un prompt de usuario
+                    if (isAssistant || (!isUser && !cleanTxt.toLowerCase().startsWith("actúa") && !cleanTxt.toLowerCase().startsWith("traduce"))) {
+                        tempExtractedItems.push({
+                            text: cleanTxt,
+                            selected: true // Seleccionado por defecto por ser contenido de Qwen
+                        });
+                    }
                 }
 
+                // Continuar la recursividad en todas las propiedades del objeto
                 for (let key in obj) {
-                    if (typeof obj[key] === 'object') recurse(obj[key]);
+                    if (typeof obj[key] === 'object') {
+                        recurse(obj[key]);
+                    }
                 }
             }
 
             recurse(data);
 
             if (tempExtractedItems.length === 0) {
-                alert("No se encontraron textos en este archivo.");
+                alert("No se encontraron respuestas de Qwen en este archivo.");
                 return;
             }
 
@@ -239,7 +254,7 @@
                 <div class="p-3 bg-white dark:bg-wattpad-card rounded-2xl border ${item.selected ? 'border-wattpad-orange' : 'border-gray-200 dark:border-gray-800 opacity-60'} flex items-start space-x-3 transition">
                     <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleItemSelection(${idx})" class="mt-1 w-5 h-5 accent-wattpad-orange rounded cursor-pointer">
                     <div class="flex-1 cursor-pointer" onclick="toggleItemSelection(${idx})">
-                        <span class="text-xs font-bold text-wattpad-orange block mb-1">Bloque #${idx + 1}</span>
+                        <span class="text-xs font-bold text-wattpad-orange block mb-1">Capítulo / Bloque #${idx + 1}</span>
                         <p class="text-xs line-clamp-3 text-gray-700 dark:text-gray-300">${item.text}</p>
                     </div>
                 </div>
