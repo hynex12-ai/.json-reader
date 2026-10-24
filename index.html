@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Illyrium Reader - Wattpad JSON & Markdown eReader</title>
+    <title>Wattpad JSON Reader</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -28,7 +28,6 @@
         .reader-content h1, .reader-content h2, .reader-content h3 { font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.75rem; }
         .reader-content strong { color: currentColor; font-weight: bold; }
         .reader-content em { font-style: italic; }
-        /* Ocultar barra de desplazamiento pero permitir scroll */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -44,7 +43,7 @@
             <header class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
                 <div>
                     <h1 class="text-2xl font-black tracking-tight text-wattpad-orange"><i class="fa-solid fa-book-open-reader mr-2"></i>Illyrium Reader</h1>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Lector optimizado para Qwen JSON & Markdown</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Lector para JSON y Markdown</p>
                 </div>
                 <button onclick="openSettings()" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-95 transition">
                     <i class="fa-solid fa-gear"></i>
@@ -57,13 +56,13 @@
                     <div class="w-12 h-12 rounded-full bg-wattpad-orange text-white flex items-center justify-center text-xl shadow-lg shadow-wattpad-orange/30 mb-2">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
-                    <span class="text-sm font-bold text-gray-700 dark:text-gray-200">Subir archivo JSON o EPUB</span>
-                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Filtra automáticamente las respuestas de Qwen</span>
-                    <input type="file" id="file-input" accept=".json,.epub" class="hidden" onchange="handleFileSelect(event)">
+                    <span class="text-sm font-bold text-gray-700 dark:text-gray-200">Seleccionar Archivo JSON</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Soporta chats de Qwen, ChatGPT y más</span>
+                    <input type="file" id="file-input" accept=".json,.txt" class="hidden" onchange="handleFileSelect(event)">
                 </label>
             </div>
 
-            <!-- Lista de Libros / Historial Guardado -->
+            <!-- Lista de Libros / Historial -->
             <div class="px-6 flex-1">
                 <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Tus Lecturas</h2>
                 <div id="book-list" class="space-y-3">
@@ -72,7 +71,7 @@
             </div>
         </div>
 
-        <!-- VISTA 2: ÍNDICE DE CAPÍTULOS (ESTILO WATTPAD) -->
+        <!-- VISTA 2: ÍNDICE DE CAPÍTULOS -->
         <div id="view-toc" class="hidden flex-1 flex flex-col pb-20">
             <div class="px-6 pt-6 pb-4 flex items-center border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-wattpad-reader backdrop-blur sticky top-0 z-10">
                 <button onclick="goLibrary()" class="mr-4 text-lg text-gray-600 dark:text-gray-300"><i class="fa-solid fa-arrow-left"></i></button>
@@ -85,21 +84,18 @@
             </div>
         </div>
 
-        <!-- VISTA 3: LECTOR INMERSIVO -->
+        <!-- VISTA 3: LECTOR -->
         <div id="view-reader" class="hidden flex-1 flex flex-col relative bg-white dark:bg-wattpad-reader">
-            <!-- Barra Superior Flotante (Ocultable al tocar la pantalla) -->
             <div id="reader-header" class="absolute top-0 left-0 right-0 px-6 py-4 flex items-center justify-between bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 z-30 transition-transform duration-300">
                 <button onclick="goToc()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-list"></i></button>
                 <span id="reader-chapter-title" class="text-xs font-bold truncate max-w-[200px] text-center">Capítulo</span>
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
-            <!-- Contenido del Capítulo con Markdown -->
             <div id="reader-container" onclick="toggleReaderControls()" class="flex-1 px-6 pt-20 pb-24 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white">
-                <!-- Render dinámico de Markdown -->
+                <!-- Render dinámico -->
             </div>
 
-            <!-- Barra Inferior de Navegación -->
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center justify-between z-30 transition-transform duration-300">
                 <button onclick="prevChapter()" class="px-4 py-2 text-sm font-bold bg-gray-100 dark:bg-gray-800 rounded-xl active:scale-95 transition"><i class="fa-solid fa-chevron-left mr-1"></i> Anterior</button>
                 <span id="reader-progress" class="text-xs text-gray-400">1 / 1</span>
@@ -107,14 +103,13 @@
             </div>
         </div>
 
-        <!-- MODAL DE CONFIGURACIÓN DE LECTURA -->
+        <!-- MODAL DE CONFIGURACIÓN -->
         <div id="modal-settings" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
-            <div class="bg-white dark:bg-wattpad-card w-full max-w-md rounded-t-3xl p-6 space-y-5 animate-in slide-in-from-bottom duration-300">
+            <div class="bg-white dark:bg-wattpad-card w-full max-w-md rounded-t-3xl p-6 space-y-5">
                 <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
                     <h3 class="font-bold text-lg">Ajustes de Lectura</h3>
                     <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
-                <!-- Temas de Color -->
                 <div>
                     <label class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Tema</label>
                     <div class="grid grid-cols-3 gap-3">
@@ -123,12 +118,11 @@
                         <button onclick="setTheme('sepia')" class="py-2.5 bg-[#f4ecd8] text-[#5f4b32] border border-[#d8ccc0] rounded-xl font-bold text-xs">Sepia</button>
                     </div>
                 </div>
-                <!-- Tamaño de Fuente -->
                 <div>
                     <label class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Tamaño de Letra</label>
                     <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-2 rounded-xl">
                         <button onclick="adjustFontSize(-2)" class="w-10 h-10 bg-white dark:bg-gray-700 rounded-lg font-bold shadow-sm">-</button>
-                        <span id="font-size-display" class="text-sm font-bold">16px</span>
+                        <span id="font-size-display" class="text-sm font-bold">17px</span>
                         <button onclick="adjustFontSize(2)" class="w-10 h-10 bg-white dark:bg-gray-700 rounded-lg font-bold shadow-sm">+</button>
                     </div>
                 </div>
@@ -137,14 +131,13 @@
 
     </div>
 
-    <!-- SCRIPT DE FUNCIONAMIENTO -->
+    <!-- SCRIPT DE NAVEGACIÓN Y PARSER ULTRA COMPATIBLE -->
     <script>
         let currentBook = { title: "Sin título", chapters: [] };
         let currentChapterIndex = 0;
         let readerSettings = { theme: 'dark', fontSize: 17 };
         let controlsVisible = true;
 
-        // Cargar ajustes guardados en LocalStorage al iniciar
         window.addEventListener('DOMContentLoaded', () => {
             const savedSettings = localStorage.getItem('reader_settings');
             if (savedSettings) {
@@ -169,13 +162,9 @@
             const app = document.getElementById('app');
             app.className = "max-w-md mx-auto min-h-screen flex flex-col relative shadow-2xl transition-colors duration-300 ";
             
-            if (readerSettings.theme === 'light') {
-                app.classList.add('bg-white', 'text-gray-900');
-            } else if (readerSettings.theme === 'dark') {
-                app.classList.add('bg-wattpad-reader', 'text-gray-100');
-            } else if (readerSettings.theme === 'sepia') {
-                app.classList.add('bg-[#f4ecd8]', 'text-[#5f4b32]');
-            }
+            if (readerSettings.theme === 'light') app.classList.add('bg-white', 'text-gray-900');
+            else if (readerSettings.theme === 'dark') app.classList.add('bg-wattpad-reader', 'text-gray-100');
+            else if (readerSettings.theme === 'sepia') app.classList.add('bg-[#f4ecd8]', 'text-[#5f4b32]');
 
             document.getElementById('reader-container').style.fontSize = readerSettings.fontSize + 'px';
             document.getElementById('font-size-display').innerText = readerSettings.fontSize + 'px';
@@ -184,7 +173,6 @@
         function openSettings() { document.getElementById('modal-settings').classList.remove('hidden'); }
         function closeSettings() { document.getElementById('modal-settings').classList.add('hidden'); }
 
-        // Procesador de Archivos (Especialmente adaptado para JSON de Qwen)
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -193,78 +181,100 @@
             reader.onload = function(e) {
                 try {
                     const rawData = JSON.parse(e.target.result);
-                    parseQwenJSON(rawData, file.name);
+                    parseUniversalJSON(rawData, file.name);
                 } catch (err) {
-                    alert("Error al leer el archivo JSON: " + err.message);
+                    alert("El archivo no es un JSON válido o está dañado.");
                 }
             };
             reader.readAsText(file);
         }
 
-        // Extractor inteligente para formato Qwen JSON
-        function parseQwenJSON(data, fileName) {
+        // PARSER UNIVERSAL (Especialmente adaptado para cualquier estructura de JSON)
+        function parseUniversalJSON(data, fileName) {
             let chapters = [];
             let bookTitle = fileName.replace('.json', '');
 
-            // Analizar estructura de Qwen (puede ser array u objeto con historial)
-            let messagesObj = null;
-
-            if (Array.isArray(data)) {
-                // Buscar si hay historial dentro de un array
-                for (let item of data) {
-                    if (item.title) bookTitle = item.title;
-                    if (item.chat && item.chat.history && item.chat.history.messages) {
-                        messagesObj = item.chat.history.messages;
-                        break;
-                    }
+            // Función interna para extraer texto de campos complejos/arrays
+            function extractText(val) {
+                if (typeof val === 'string') return val;
+                if (Array.isArray(val)) {
+                    return val.map(v => extractText(v)).join('\n\n');
                 }
-                if (!messagesObj && data.length > 0 && data[0].content) {
-                    // Es un JSON plano de mensajes
-                    messagesObj = data;
+                if (typeof val === 'object' && val !== null) {
+                    if (val.text) return extractText(val.text);
+                    if (val.content) return extractText(val.content);
                 }
-            } else if (data.chat && data.chat.history && data.chat.history.messages) {
-                messagesObj = data.chat.history.messages;
-                if (data.title) bookTitle = data.title;
-            } else if (typeof data === 'object') {
-                messagesObj = data;
+                return '';
             }
 
-            if (messagesObj) {
-                // Recorrer los mensajes y FILTRAR SOLO LAS RESPUESTAS DE LA IA (assistant)
-                let entries = Array.isArray(messagesObj) ? messagesObj : Object.values(messagesObj);
-                
-                let count = 1;
-                entries.forEach(msg => {
-                    // REQUISITO CLAVE: Solo extraer respuestas de qwen (role === 'assistant') y que tengan contenido de texto válido
-                    let role = msg.role || (msg.message && msg.message.role);
-                    let content = msg.content || (msg.message && msg.message.content);
+            // MÉTODOS DE BÚSQUEDA
 
-                    // Si es un array de contenido (como content_list de qwen)
-                    if (Array.isArray(content)) {
-                        content.forEach(c => {
-                            if (c.phase === 'answer' && c.content) {
-                                chapters.push({
-                                    title: `Capítulo ${count++}`,
-                                    text: c.content
-                                });
-                            }
-                        });
-                    } else if (role === 'assistant' && typeof content === 'string' && content.trim() !== '') {
+            // 1. Recorrido recursivo buscando objetos con rol 'assistant' o 'bot'
+            function findAssistantMessages(obj) {
+                if (!obj || typeof obj !== 'object') return;
+
+                if (Array.isArray(obj)) {
+                    obj.forEach(item => findAssistantMessages(item));
+                    return;
+                }
+
+                // Verificar si este objeto representa un mensaje de la IA
+                let role = obj.role || obj.type || obj.author_role;
+                if (role && (role === 'assistant' || role === 'bot' || role === 'model')) {
+                    let txt = extractText(obj.content || obj.text || obj.message);
+                    if (txt && txt.trim().length > 20) {
                         chapters.push({
-                            title: `Capítulo ${count++}`,
-                            text: content
+                            title: `Capítulo ${chapters.length + 1}`,
+                            text: txt.trim()
                         });
+                        return;
                     }
-                });
+                }
+
+                // Si tiene hijos, seguir buscando
+                for (let key in obj) {
+                    if (typeof obj[key] === 'object') {
+                        findAssistantMessages(obj[key]);
+                    }
+                }
             }
 
-            // Si no encontró por rol assistant, extraer cualquier bloque de texto largo disponible
+            // 2. Método de respaldo extremo: Extraer cualquier bloque de texto largo
+            function findAnyLongText(obj) {
+                if (!obj || typeof obj !== 'object') return;
+
+                if (Array.isArray(obj)) {
+                    obj.forEach(item => findAnyLongText(item));
+                    return;
+                }
+
+                for (let key in obj) {
+                    let val = obj[key];
+                    if (typeof val === 'string' && val.trim().length > 60) {
+                        // Evitar agregar metadatos o UUIDs cortando textos repetidos
+                        let txt = val.trim();
+                        if (!chapters.some(ch => ch.text === txt)) {
+                            chapters.push({
+                                title: `Capítulo ${chapters.length + 1}`,
+                                text: txt
+                            });
+                        }
+                    } else if (typeof val === 'object') {
+                        findAnyLongText(val);
+                    }
+                }
+            }
+
+            // Ejecutar Búsquedas
+            findAssistantMessages(data);
+
+            // Si el método por roles no halló nada, usar la búsqueda profunda de textos
             if (chapters.length === 0) {
-                JSONTraverse(data, chapters);
+                findAnyLongText(data);
             }
 
             if (chapters.length === 0) {
-                alert("No se encontraron textos generados por el asistente en este JSON.");
+                alert("No se pudo extraer ningún texto legible de este archivo JSON.");
                 return;
             }
 
@@ -274,21 +284,8 @@
             openToc();
         }
 
-        // Buscador recursivo de respaldo por si la estructura varía
-        function JSONTraverse(obj, chapters) {
-            for (let key in obj) {
-                if (obj[key] !== null && typeof obj[key] === 'object') {
-                    JSONTraverse(obj[key], chapters);
-                } else if (key === 'content' && typeof obj[key] === 'string' && obj[key].length > 100) {
-                    chapters.push({ title: `Capítulo ${chapters.length + 1}`, text: obj[key] });
-                }
-            }
-        }
-
-        // Gestión de Almacenamiento Local (Historial de libros)
         function saveBookToLocalStorage(book) {
             let saved = JSON.parse(localStorage.getItem('illyrium_books') || '[]');
-            // Evitar duplicados por título
             saved = saved.filter(b => b.title !== book.title);
             saved.unshift(book);
             localStorage.setItem('illyrium_books', JSON.stringify(saved));
@@ -299,7 +296,7 @@
             const saved = JSON.parse(localStorage.getItem('illyrium_books') || '[]');
             
             if (saved.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">No hay libros cargados aún. Sube un archivo JSON arriba.</p>`;
+                listEl.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">No hay historias guardadas aún. Carga un archivo JSON arriba.</p>`;
                 return;
             }
 
@@ -311,7 +308,7 @@
                         </div>
                         <div class="truncate">
                             <h3 class="font-bold text-sm truncate">${book.title}</h3>
-                            <p class="text-xs text-gray-400">${book.chapters.length} capítulos (Qwen AI)</p>
+                            <p class="text-xs text-gray-400">${book.chapters.length} capítulos</p>
                         </div>
                     </div>
                     <button onclick="event.stopPropagation(); deleteBook(${index})" class="text-gray-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
@@ -332,7 +329,6 @@
             renderLibrary();
         }
 
-        // Navegación de Vistas
         function goLibrary() {
             document.getElementById('view-toc').classList.add('hidden');
             document.getElementById('view-reader').classList.add('hidden');
@@ -370,7 +366,7 @@
             document.getElementById('reader-chapter-title').innerText = chapter.title;
             document.getElementById('reader-progress').innerText = `${currentChapterIndex + 1} / ${currentBook.chapters.length}`;
             
-            // Parsear Markdown respetando negritas, cursivas y saltos de línea de Qwen con Marked.js
+            // Renderizar Markdown con marked.js
             document.getElementById('reader-container').innerHTML = marked.parse(chapter.text);
             document.getElementById('reader-container').scrollTop = 0;
         }
