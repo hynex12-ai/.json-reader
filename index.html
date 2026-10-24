@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -17,7 +17,7 @@
             theme: {
                 extend: {
                     colors: {
-                        wattpad: { orange: '#ff5000', dark: '#1a1a1a', card: '#242424', reader: '#121212' }
+                        wattpad: { orange: '#ff5000', dark: '#121212', card: '#1e1e1e', reader: '#121212' }
                     }
                 }
             }
@@ -28,9 +28,14 @@
         .reader-content h1, .reader-content h2, .reader-content h3 { font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.75rem; }
         .reader-content strong { color: currentColor; font-weight: bold; }
         .reader-content em { font-style: italic; }
+        
+        /* Tipografías personalizadas */
+        .font-sans-custom { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .font-serif-custom { font-family: Cambria, Georgia, 'Times New Roman', serif; }
+        .font-mono-custom { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-wattpad-dark text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300 antialiased select-none">
+<body class="bg-gray-100 dark:bg-wattpad-dark text-gray-800 dark:text-gray-200 font-sans-custom transition-colors duration-300 antialiased select-none">
 
     <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col relative bg-white dark:bg-wattpad-reader shadow-2xl">
 
@@ -52,7 +57,7 @@
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
                     <span class="text-sm font-bold text-gray-700 dark:text-gray-200">Subir Archivo JSON</span>
-                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Solo se extraerán las respuestas de Qwen</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Extracción automática de respuestas de Qwen</span>
                     <input type="file" id="file-input" accept=".json,.txt" class="hidden" onchange="handleFileSelect(event)">
                 </label>
             </div>
@@ -73,18 +78,19 @@
                 <button onclick="saveCuratedBook()" class="px-3 py-1.5 bg-wattpad-orange text-white text-xs font-bold rounded-xl shadow-md">Guardar Libro</button>
             </div>
             <div class="px-6 py-3 bg-orange-50 dark:bg-wattpad-orange/10 border-b border-orange-100 dark:border-wattpad-orange/20 text-xs text-wattpad-orange font-medium">
-                Se han filtrado automáticamente las respuestas de Qwen. Revisa y desmarca cualquier bloque sobrante.
+                Se han filtrado las respuestas del asistente. Revisa y desmarca bloques innecesarios si lo deseas.
             </div>
-            <div class="px-6 py-4 flex-1 overflow-y-auto space-y-3" id="selector-list">
-                <!-- Generado dinámicamente -->
-            </div>
+            <div class="px-6 py-4 flex-1 overflow-y-auto space-y-3" id="selector-list"></div>
         </div>
 
         <!-- VISTA 3: ÍNDICE -->
         <div id="view-toc" class="hidden flex-1 flex flex-col pb-20">
-            <div class="px-6 pt-6 pb-4 flex items-center border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-wattpad-reader backdrop-blur sticky top-0 z-10">
-                <button onclick="goLibrary()" class="mr-4 text-lg text-gray-600 dark:text-gray-300"><i class="fa-solid fa-arrow-left"></i></button>
-                <h2 id="toc-book-title" class="text-lg font-bold truncate">Título</h2>
+            <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-wattpad-reader backdrop-blur sticky top-0 z-10">
+                <div class="flex items-center truncate pr-2">
+                    <button onclick="goLibrary()" class="mr-4 text-lg text-gray-600 dark:text-gray-300"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h2 id="toc-book-title" class="text-lg font-bold truncate">Título</h2>
+                </div>
+                <button onclick="goLibrary()" class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300"><i class="fa-solid fa-house text-xs"></i></button>
             </div>
             <div class="px-6 py-4 flex-1 overflow-y-auto">
                 <div id="toc-chapters-list" class="divide-y divide-gray-100 dark:divide-gray-800"></div>
@@ -94,8 +100,11 @@
         <!-- VISTA 4: LECTOR -->
         <div id="view-reader" class="hidden flex-1 flex flex-col relative bg-white dark:bg-wattpad-reader">
             <div id="reader-header" class="absolute top-0 left-0 right-0 px-6 py-4 flex items-center justify-between bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 z-30 transition-transform duration-300">
-                <button onclick="goToc()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-list"></i></button>
-                <span id="reader-chapter-title" class="text-xs font-bold truncate max-w-[200px] text-center">Capítulo</span>
+                <div class="flex items-center space-x-3">
+                    <button onclick="goToc()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-list"></i></button>
+                    <button onclick="goLibrary()" class="text-gray-600 dark:text-gray-300 text-base" title="Ir al Home"><i class="fa-solid fa-house"></i></button>
+                </div>
+                <span id="reader-chapter-title" class="text-xs font-bold truncate max-w-[150px] text-center">Capítulo</span>
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
@@ -115,6 +124,7 @@
                     <h3 class="font-bold text-lg">Ajustes de Lectura</h3>
                     <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
+                <!-- Modo Color -->
                 <div>
                     <label class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Tema</label>
                     <div class="grid grid-cols-3 gap-3">
@@ -123,6 +133,16 @@
                         <button onclick="setTheme('sepia')" class="py-2.5 bg-[#f4ecd8] text-[#5f4b32] border border-[#d8ccc0] rounded-xl font-bold text-xs">Sepia</button>
                     </div>
                 </div>
+                <!-- Selector de Fuentes -->
+                <div>
+                    <label class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Tipografía</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button onclick="setFontFamily('sans')" class="py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-sans-custom font-bold">Sans</button>
+                        <button onclick="setFontFamily('serif')" class="py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-serif-custom font-bold">Serif</button>
+                        <button onclick="setFontFamily('mono')" class="py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-mono-custom font-bold">Mono</button>
+                    </div>
+                </div>
+                <!-- Tamaño de Letra -->
                 <div>
                     <label class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Tamaño de Letra</label>
                     <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-2 rounded-xl">
@@ -140,19 +160,20 @@
         let currentBook = { title: "Sin título", chapters: [] };
         let tempExtractedItems = [];
         let currentChapterIndex = 0;
-        let readerSettings = { theme: 'dark', fontSize: 17 };
+        let readerSettings = { theme: 'dark', fontSize: 17, font: 'sans' };
         let controlsVisible = true;
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedSettings = localStorage.getItem('reader_settings');
             if (savedSettings) {
                 readerSettings = JSON.parse(savedSettings);
-                applySettings();
             }
+            applySettings();
             renderLibrary();
         });
 
         function setTheme(theme) { readerSettings.theme = theme; applySettings(); }
+        function setFontFamily(font) { readerSettings.font = font; applySettings(); }
         function adjustFontSize(delta) {
             readerSettings.fontSize = Math.min(Math.max(12, readerSettings.fontSize + delta), 28);
             applySettings();
@@ -160,12 +181,32 @@
 
         function applySettings() {
             localStorage.setItem('reader_settings', JSON.stringify(readerSettings));
+            
+            // Gestión limpia de la clase dark a nivel de documento raíz y app
+            const htmlEl = document.documentElement;
             const app = document.getElementById('app');
+            const readerContainer = document.getElementById('reader-container');
+
+            // Limpieza de estados visuales anteriores
             app.className = "max-w-md mx-auto min-h-screen flex flex-col relative shadow-2xl transition-colors duration-300 ";
-            if (readerSettings.theme === 'light') app.classList.add('bg-white', 'text-gray-900');
-            else if (readerSettings.theme === 'dark') app.classList.add('bg-wattpad-reader', 'text-gray-100');
-            else if (readerSettings.theme === 'sepia') app.classList.add('bg-[#f4ecd8]', 'text-[#5f4b32]');
-            document.getElementById('reader-container').style.fontSize = readerSettings.fontSize + 'px';
+            htmlEl.classList.remove('dark');
+
+            if (readerSettings.theme === 'light') {
+                app.classList.add('bg-white', 'text-gray-900');
+            } else if (readerSettings.theme === 'dark') {
+                htmlEl.classList.add('dark');
+                app.classList.add('bg-wattpad-reader', 'text-gray-100');
+            } else if (readerSettings.theme === 'sepia') {
+                app.classList.add('bg-[#f4ecd8]', 'text-[#5f4b32]');
+            }
+
+            // Aplicar Tipografía
+            readerContainer.classList.remove('font-sans-custom', 'font-serif-custom', 'font-mono-custom');
+            if (readerSettings.font === 'sans') readerContainer.classList.add('font-sans-custom');
+            else if (readerSettings.font === 'serif') readerContainer.classList.add('font-serif-custom');
+            else if (readerSettings.font === 'mono') readerContainer.classList.add('font-mono-custom');
+
+            readerContainer.style.fontSize = readerSettings.fontSize + 'px';
             document.getElementById('font-size-display').innerText = readerSettings.fontSize + 'px';
         }
 
@@ -187,44 +228,30 @@
             reader.readAsText(file);
         }
 
-        /**
-         * Función adaptada para extraer EXCLUSIVAMENTE las respuestas del asistente (Qwen),
-         * analizando la estructura de nodos e ignorando prompts o mensajes de usuario.
-         */
         function extractQwenAssistantBlocks(data, fileName) {
             tempExtractedItems = [];
             let globalTitle = fileName.replace('.json', '');
 
             function recurse(obj) {
                 if (!obj || typeof obj !== 'object') return;
-                
                 if (Array.isArray(obj)) {
                     obj.forEach(item => recurse(item));
                     return;
                 }
 
-                // Identificar propiedades típicas de rol y contenido en Qwen/JSONs de chat
                 let role = (obj.role || obj.type || obj.author_role || '').toLowerCase();
                 let txt = obj.content || obj.text || obj.message || obj.value;
 
-                // Verificamos si el objeto representa un mensaje del asistente (o si su contenido no proviene de un usuario)
                 let isAssistant = role === 'assistant' || role === 'model' || role === 'bot';
                 let isUser = role === 'user' || role === 'human';
 
-                // Si detectamos explícitamente que es un nodo de mensaje de texto largo
                 if (typeof txt === 'string' && txt.trim().length > 20) {
                     let cleanTxt = txt.trim();
-
-                    // Si el rol es claramente de asistente, o si no tiene rol explícito pero sabemos que no es un prompt de usuario
                     if (isAssistant || (!isUser && !cleanTxt.toLowerCase().startsWith("actúa") && !cleanTxt.toLowerCase().startsWith("traduce"))) {
-                        tempExtractedItems.push({
-                            text: cleanTxt,
-                            selected: true // Seleccionado por defecto por ser contenido de Qwen
-                        });
+                        tempExtractedItems.push({ text: cleanTxt, selected: true });
                     }
                 }
 
-                // Continuar la recursividad en todas las propiedades del objeto
                 for (let key in obj) {
                     if (typeof obj[key] === 'object') {
                         recurse(obj[key]);
@@ -235,7 +262,7 @@
             recurse(data);
 
             if (tempExtractedItems.length === 0) {
-                alert("No se encontraron respuestas de Qwen en este archivo.");
+                alert("No se encontraron respuestas del asistente en este archivo.");
                 return;
             }
 
