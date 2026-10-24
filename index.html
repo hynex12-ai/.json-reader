@@ -57,7 +57,7 @@
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
                     <span class="text-sm font-bold text-gray-700 dark:text-gray-200">Seleccionar Archivo JSON</span>
-                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Soporta chats de Qwen, ChatGPT y más</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Filtro inteligente anti-prompts</span>
                     <input type="file" id="file-input" accept=".json,.txt" class="hidden" onchange="handleFileSelect(event)">
                 </label>
             </div>
@@ -131,7 +131,7 @@
 
     </div>
 
-    <!-- SCRIPT DE NAVEGACIÓN Y PARSER ULTRA COMPATIBLE -->
+    <!-- SCRIPT CON FILTRO ANTI-PROMPTS -->
     <script>
         let currentBook = { title: "Sin título", chapters: [] };
         let currentChapterIndex = 0;
@@ -181,7 +181,7 @@
             reader.onload = function(e) {
                 try {
                     const rawData = JSON.parse(e.target.result);
-                    parseUniversalJSON(rawData, file.name);
+                    parseAndFilterJSON(rawData, file.name);
                 } catch (err) {
                     alert("El archivo no es un JSON válido o está dañado.");
                 }
@@ -189,12 +189,11 @@
             reader.readAsText(file);
         }
 
-        // PARSER UNIVERSAL (Especialmente adaptado para cualquier estructura de JSON)
-        function parseUniversalJSON(data, fileName) {
+        // PARSER CON FILTRADO ESTRICTO DE PROMPTS DE USUARIO
+        function parseAndFilterJSON(data, fileName) {
             let chapters = [];
             let bookTitle = fileName.replace('.json', '');
 
-            // Función interna para extraer texto de campos complejos/arrays
             function extractText(val) {
                 if (typeof val === 'string') return val;
                 if (Array.isArray(val)) {
@@ -207,74 +206,62 @@
                 return '';
             }
 
-            // MÉTODOS DE BÚSQUEDA
-
-            // 1. Recorrido recursivo buscando objetos con rol 'assistant' o 'bot'
-            function findAssistantMessages(obj) {
+            // Recorrido inteligente para descartar mensajes de usuario
+            function scanMessages(obj) {
                 if (!obj || typeof obj !== 'object') return;
 
                 if (Array.isArray(obj)) {
-                    obj.forEach(item => findAssistantMessages(item));
+                    obj.forEach(item => scanMessages(item));
                     return;
                 }
 
-                // Verificar si este objeto representa un mensaje de la IA
-                let role = obj.role || obj.type || obj.author_role;
-                if (role && (role === 'assistant' || role === 'bot' || role === 'model')) {
-                    let txt = extractText(obj.content || obj.text || obj.message);
-                    if (txt && txt.trim().length > 20) {
-                        chapters.push({
-                            title: `Capítulo ${chapters.length + 1}`,
-                            text: txt.trim()
-                        });
-                        return;
-                    }
+                // Si el objeto tiene un rol explícito
+                let role = (obj.role || obj.type || obj.author_role || '').toLowerCase();
+                
+                // Si explícitamente es usuario, lo ignoramos por completo
+                if (role === 'user' || role === 'human') {
+                    return; 
                 }
 
-                // Si tiene hijos, seguir buscando
-                for (let key in obj) {
-                    if (typeof obj[key] === 'object') {
-                        findAssistantMessages(obj[key]);
-                    }
-                }
-            }
+                // Si es asistente/modelo, o si no tiene rol pero tiene texto largo
+                let txt = extractText(obj.content || obj.text || obj.message || obj.value);
+                
+                if (txt && txt.trim().length > 80) { // Textos de novela suelen ser largos
+                    let cleanText = txt.trim();
+                    
+                    // REGLA ANTI-PROMPTS: Descartar si parece una instrucción de usuario típica
+                    let lower = cleanText.toLowerCase();
+                    let isPrompt = lower.startsWith("traduce") || 
+                                   lower.startsWith("actúa") || 
+                                   lower.startsWith("por favor") || 
+                                   lower.startsWith("continúa") || 
+                                   lower.includes("quiero que") ||
+                                   lower.includes("siguiente capítulo");
 
-            // 2. Método de respaldo extremo: Extraer cualquier bloque de texto largo
-            function findAnyLongText(obj) {
-                if (!obj || typeof obj !== 'object') return;
-
-                if (Array.isArray(obj)) {
-                    obj.forEach(item => findAnyLongText(item));
-                    return;
-                }
-
-                for (let key in obj) {
-                    let val = obj[key];
-                    if (typeof val === 'string' && val.trim().length > 60) {
-                        // Evitar agregar metadatos o UUIDs cortando textos repetidos
-                        let txt = val.trim();
-                        if (!chapters.some(ch => ch.text === txt)) {
+                    // Si tiene rol de assistant/model, o si pasó el filtro de no ser prompt de usuario
+                    if (role === 'assistant' || role === 'bot' || role === 'model' || (!isPrompt && role !== 'user' && role !== 'human')) {
+                        // Evitar duplicados exactos
+                        if (!chapters.some(ch => ch.text === cleanText)) {
                             chapters.push({
                                 title: `Capítulo ${chapters.length + 1}`,
-                                text: txt
+                                text: cleanText
                             });
                         }
-                    } else if (typeof val === 'object') {
-                        findAnyLongText(val);
+                    }
+                }
+
+                // Continuar buscando en las propiedades internas
+                for (let key in obj) {
+                    if (typeof obj[key] === 'object') {
+                        scanMessages(obj[key]);
                     }
                 }
             }
 
-            // Ejecutar Búsquedas
-            findAssistantMessages(data);
-
-            // Si el método por roles no halló nada, usar la búsqueda profunda de textos
-            if (chapters.length === 0) {
-                findAnyLongText(data);
-            }
+            scanMessages(data);
 
             if (chapters.length === 0) {
-                alert("No se pudo extraer ningún texto legible de este archivo JSON.");
+                alert("No se pudieron filtrar capítulos válidos. Asegúrate de que el JSON contenga las respuestas de la IA.");
                 return;
             }
 
@@ -366,7 +353,6 @@
             document.getElementById('reader-chapter-title').innerText = chapter.title;
             document.getElementById('reader-progress').innerText = `${currentChapterIndex + 1} / ${currentBook.chapters.length}`;
             
-            // Renderizar Markdown con marked.js
             document.getElementById('reader-container').innerHTML = marked.parse(chapter.text);
             document.getElementById('reader-container').scrollTop = 0;
         }
