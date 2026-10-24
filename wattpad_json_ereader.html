@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wattpad-Style JSON Reader</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        wattpad: {
+                            orange: '#FF6200',
+                            darkBg: '#121212',
+                            darkCard: '#1E1E1E',
+                            sepiaBg: '#F4ECD8',
+                            sepiaText: '#5F4B32',
+                            sepiaCard: '#E8DFCA'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        serif: ['Georgia', 'Merriweather', 'serif'],
+                        mono: ['Courier New', 'Courier', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Typography & Custom Scrollbar */
+        body {
+            -webkit-tap-highlight-color: transparent;
+            user-select: text;
+        }
+
+        .reading-content p {
+            margin-bottom: 1.25rem;
+            line-height: inherit;
+        }
+        .reading-content h1, .reading-content h2, .reading-content h3, .reading-content h4 {
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .reading-content h1 { font-size: 1.75em; }
+        .reading-content h2 { font-size: 1.4em; }
+        .reading-content h3 { font-size: 1.2em; }
+        .reading-content blockquote {
+            border-left: 4px solid rgba(255, 98, 0, 0.6);
+            padding-left: 1rem;
+            font-style: italic;
+            margin: 1rem 0;
+            opacity: 0.85;
+        }
+        .reading-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .reading-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .reading-content code {
+            background-color: rgba(150, 150, 150, 0.2);
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+        }
+        .reading-content pre {
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+
+        /* Themes */
+        .theme-light { background-color: #FFFFFF; color: #1F2937; }
+        .theme-dark { background-color: #121212; color: #E5E7EB; }
+        .theme-sepia { background-color: #F4ECD8; color: #433422; }
+        .theme-oled { background-color: #000000; color: #D1D5DB; }
+
+        .theme-light .bg-custom-card { background-color: #F3F4F6; }
+        .theme-dark .bg-custom-card { background-color: #1E1E1E; }
+        .theme-sepia .bg-custom-card { background-color: #E8DFCA; }
+        .theme-oled .bg-custom-card { background-color: #111111; }
+
+        /* Hide scrollbars for smooth reading */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Reading Progress Line */
+        #progress-bar { transition: width 0.1s ease-out; }
+    </style>
+</head>
+<body class="theme-light antialiased transition-colors duration-200 min-h-screen flex flex-col font-sans">
+
+    <!-- TOP HEADER / NAVBAR -->
+    <header id="navbar" class="fixed top-0 left-0 right-0 z-30 transition-transform duration-300 transform translate-y-0 backdrop-blur-md bg-opacity-90 border-b border-gray-200 dark:border-gray-800 theme-light">
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-200 dark:bg-gray-800 h-1">
+            <div id="progress-bar" class="bg-wattpad-orange h-1 w-0"></div>
+        </div>
+
+        <div class="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between">
+            <button id="btn-toc" class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition" title="Índice / Capítulos">
+                <i class="fa-solid fa-list-ul text-lg"></i>
+            </button>
+
+            <div class="flex-1 px-3 text-center overflow-hidden">
+                <h1 id="nav-story-title" class="text-xs uppercase tracking-wider font-semibold opacity-60 truncate">JSON eReader</h1>
+                <h2 id="nav-chapter-title" class="text-sm font-bold truncate">Cargar Archivo .JSON</h2>
+            </div>
+
+            <div class="flex items-center gap-1">
+                <button id="btn-settings" class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition" title="Ajustes de Lectura">
+                    <i class="fa-solid fa-font text-lg"></i>
+                </button>
+                <button id="btn-upload" class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition text-wattpad-orange" title="Cargar JSON">
+                    <i class="fa-solid fa-file-circle-plus text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN READING CONTAINER -->
+    <main id="main-container" class="flex-1 max-w-2xl w-full mx-auto px-5 pt-20 pb-24 transition-all duration-200">
+
+        <!-- WELCOME / DROP ZONE STATE -->
+        <section id="import-section" class="py-12 text-center flex flex-col items-center justify-center min-h-[70vh]">
+            <div class="w-20 h-20 mb-6 rounded-2xl bg-wattpad-orange/10 flex items-center justify-center text-wattpad-orange shadow-inner">
+                <i class="fa-solid fa-book-open text-4xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">Wattpad JSON Reader</h2>
+            <p class="text-sm opacity-70 max-w-md mb-8 leading-relaxed">
+                Lee historias, novelas o chats exportados en formato <code>.json</code> con estilo de libro interactivo y soporte total para Markdown.
+            </p>
+
+            <label for="file-input" class="cursor-pointer bg-wattpad-orange hover:bg-orange-600 text-white font-medium px-6 py-3.5 rounded-full shadow-lg hover:shadow-orange-500/20 active:scale-95 transition flex items-center gap-2">
+                <i class="fa-solid fa-upload"></i>
+                <span>Seleccionar Archivo JSON</span>
+            </label>
+            <input type="file" id="file-input" accept=".json" class="hidden">
+
+            <div class="mt-4">
+                <button id="btn-demo" class="text-xs underline opacity-70 hover:opacity-100 py-1">Probemos con un JSON de ejemplo</button>
+            </div>
+
+            <!-- Drag and drop zone -->
+            <div id="drop-zone" class="mt-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-8 w-full max-w-sm transition-colors">
+                <p class="text-xs opacity-60">O arrastra y suelta tu archivo JSON aquí</p>
+            </div>
+        </section>
+
+        <!-- READER DISPLAY AREA -->
+        <article id="reader-section" class="hidden">
+            <!-- Chapter Metadata Info -->
+            <div class="mb-8 pb-4 border-b border-black/10 dark:border-white/10 text-center">
+                <span id="story-header-tag" class="text-xs uppercase tracking-widest font-bold text-wattpad-orange mb-1 block">Historia</span>
+                <h1 id="chapter-main-title" class="text-2xl sm:text-3xl font-extrabold mb-2">Título del Capítulo</h1>
+                <div class="text-xs opacity-60 flex items-center justify-center gap-3">
+                    <span id="read-time"><i class="fa-regular fa-clock mr-1"></i> ~3 min</span>
+                    <span>•</span>
+                    <span id="chapter-count-indicator">Capítulo 1 de 1</span>
+                </div>
+            </div>
+
+            <!-- Main Rendered Content -->
+            <div id="reader-body" class="reading-content text-left"></div>
+
+            <!-- Page Navigation Controls (Wattpad Style End Chapter) -->
+            <div id="chapter-footer" class="mt-12 pt-8 border-t border-black/10 dark:border-white/10 flex flex-col items-center gap-4">
+                <p id="end-chapter-message" class="text-sm opacity-70 italic text-center">Has llegado al final de este capítulo.</p>
+                
+                <div class="flex items-center gap-3 w-full max-w-xs">
+                    <button id="btn-prev-chapter" class="flex-1 py-3 px-4 rounded-xl bg-custom-card text-xs font-semibold flex items-center justify-center gap-2 hover:opacity-80 active:scale-95 transition disabled:opacity-30">
+                        <i class="fa-solid fa-chevron-left"></i> Anterior
+                    </button>
+                    <button id="btn-next-chapter" class="flex-1 py-3 px-4 rounded-xl bg-wattpad-orange text-white text-xs font-semibold flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition shadow-md disabled:opacity-30">
+                        Siguiente <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <!-- CHAPTERS DRAWER (SIDEBAR/MODAL) -->
+    <div id="toc-drawer" class="fixed inset-0 z-40 transform translate-x-full transition-transform duration-300 ease-in-out flex justify-end">
+        <!-- Backdrop -->
+        <div id="toc-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-300"></div>
+        
+        <!-- Drawer Panel -->
+        <div class="relative w-4/5 max-w-sm h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col z-10">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-book text-wattpad-orange"></i>
+                    <h3 class="font-bold text-sm truncate" id="toc-story-title">Capítulos</h3>
+                </div>
+                <button id="btn-close-toc" class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Chapter List -->
+            <div id="chapter-list" class="flex-1 overflow-y-auto p-3 space-y-1 divide-y divide-gray-100 dark:divide-gray-800/50">
+                <!-- Chapters inserted via JS -->
+            </div>
+
+            <div class="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-zinc-900/50 text-center">
+                <button id="btn-reset-data" class="text-xs text-red-500 hover:text-red-600 font-medium py-1 px-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition">
+                    <i class="fa-solid fa-trash mr-1"></i> Cerrar Libro Actual
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <!-- Backdrop -->
+        <div id="settings-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+        <!-- Modal Content (Bottom Sheet on Mobile) -->
+        <div class="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl z-10 transition-transform duration-200">
+            <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-100 dark:border-gray-800">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-wattpad-orange"></i> Personalizar Lectura
+                </h3>
+                <button id="btn-close-settings" class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Theme Selection -->
+            <div class="mb-5">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 block">Tema</label>
+                <div class="grid grid-cols-4 gap-2">
+                    <button data-theme="theme-light" class="theme-btn py-2.5 rounded-xl border border-gray-300 bg-white text-gray-900 text-xs font-bold flex flex-col items-center gap-1 shadow-sm active:scale-95 transition">
+                        <span class="w-4 h-4 rounded-full bg-white border border-gray-400"></span> Claro
+                    </button>
+                    <button data-theme="theme-dark" class="theme-btn py-2.5 rounded-xl border border-gray-700 bg-zinc-900 text-white text-xs font-bold flex flex-col items-center gap-1 shadow-sm active:scale-95 transition">
+                        <span class="w-4 h-4 rounded-full bg-zinc-800 border border-gray-600"></span> Oscuro
+                    </button>
+                    <button data-theme="theme-sepia" class="theme-btn py-2.5 rounded-xl border border-amber-300/50 bg-[#F4ECD8] text-[#5F4B32] text-xs font-bold flex flex-col items-center gap-1 shadow-sm active:scale-95 transition">
+                        <span class="w-4 h-4 rounded-full bg-[#E8DFCA] border border-amber-400"></span> Sepia
+                    </button>
+                    <button data-theme="theme-oled" class="theme-btn py-2.5 rounded-xl border border-zinc-800 bg-black text-gray-300 text-xs font-bold flex flex-col items-center gap-1 shadow-sm active:scale-95 transition">
+                        <span class="w-4 h-4 rounded-full bg-black border border-zinc-700"></span> OLED
+                    </button>
+                </div>
+            </div>
+
+            <!-- Font Family -->
+            <div class="mb-5">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 block">Tipografía</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button data-font="font-sans" class="font-btn py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-sans hover:border-wattpad-orange transition">Modern Sans</button>
+                    <button data-font="font-serif" class="font-btn py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-serif hover:border-wattpad-orange transition">Clásica Serif</button>
+                    <button data-font="font-mono" class="font-btn py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-mono hover:border-wattpad-orange transition">Monospace</button>
+                </div>
+            </div>
+
+            <!-- Font Size -->
+            <div class="mb-5">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-gray-500">Tamaño de Texto</label>
+                    <span id="font-size-label" class="text-xs font-mono text-wattpad-orange font-bold">18px</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold">A-</span>
+                    <input type="range" id="slider-fontsize" min="14" max="28" value="18" class="w-full accent-wattpad-orange h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                    <span class="text-lg font-bold">A+</span>
+                </div>
+            </div>
+
+            <!-- Line Height / Alignment -->
+            <div class="mb-2">
+                <label class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2 block">Alineación de Texto</label>
+                <div class="flex gap-2">
+                    <button data-align="text-left" class="align-btn flex-1 py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-xs flex justify-center items-center gap-1"><i class="fa-solid fa-align-left"></i> Izquierda</button>
+                    <button data-align="text-justify" class="align-btn flex-1 py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-xs flex justify-center items-center gap-1"><i class="fa-solid fa-align-justify"></i> Justificado</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // State Management
+        const STATE_KEY = 'wattpad_reader_state';
+        const SETTINGS_KEY = 'wattpad_reader_settings';
+
+        let bookData = {
+            title: '',
+            chapters: []
+        };
+
+        let currentChapterIndex = 0;
+
+        let settings = {
+            theme: 'theme-light',
+            fontFamily: 'font-sans',
+            fontSize: 18,
+            textAlign: 'text-left'
+        };
+
+        // DOM Elements
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const importSection = document.getElementById('import-section');
+        const readerSection = document.getElementById('reader-section');
+        const readerBody = document.getElementById('reader-body');
+        
+        const navStoryTitle = document.getElementById('nav-story-title');
+        const navChapterTitle = document.getElementById('nav-chapter-title');
+        const storyHeaderTag = document.getElementById('story-header-tag');
+        const chapterMainTitle = document.getElementById('chapter-main-title');
+        const chapterCountIndicator = document.getElementById('chapter-count-indicator');
+        const readTime = document.getElementById('read-time');
+        const progressBar = document.getElementById('progress-bar');
+
+        const tocDrawer = document.getElementById('toc-drawer');
+        const tocBackdrop = document.getElementById('toc-backdrop');
+        const tocStoryTitle = document.getElementById('toc-story-title');
+        const chapterList = document.getElementById('chapter-list');
+
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsBackdrop = document.getElementById('settings-backdrop');
+
+        // Buttons
+        const btnToc = document.getElementById('btn-toc');
+        const btnCloseToc = document.getElementById('btn-close-toc');
+        const btnSettings = document.getElementById('btn-settings');
+        const btnCloseSettings = document.getElementById('btn-close-settings');
+        const btnUpload = document.getElementById('btn-upload');
+        const btnPrevChapter = document.getElementById('btn-prev-chapter');
+        const btnNextChapter = document.getElementById('btn-next-chapter');
+        const btnResetData = document.getElementById('btn-reset-data');
+        const btnDemo = document.getElementById('btn-demo');
+
+        // Init Application
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadSavedBookState();
+            setupEventListeners();
+            setupScrollProgress();
+        });
+
+        // Event Listeners Setup
+        function setupEventListeners() {
+            // File Uploads
+            fileInput.addEventListener('change', handleFileSelect);
+            btnUpload.addEventListener('click', () => fileInput.click());
+
+            // Drag & Drop
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-wattpad-orange'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-wattpad-orange'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-wattpad-orange');
+                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+            });
+
+            // Demo File Load
+            btnDemo.addEventListener('click', loadDemoJSON);
+
+            // TOC Drawer
+            btnToc.addEventListener('click', openToc);
+            btnCloseToc.addEventListener('click', closeToc);
+            tocBackdrop.addEventListener('click', closeToc);
+
+            // Settings Modal
+            btnSettings.addEventListener('click', openSettings);
+            btnCloseSettings.addEventListener('click', closeSettings);
+            settingsBackdrop.addEventListener('click', closeSettings);
+
+            // Navigation
+            btnPrevChapter.addEventListener('click', () => navigateChapter(-1));
+            btnNextChapter.addEventListener('click', () => navigateChapter(1));
+
+            // Reset
+            btnResetData.addEventListener('click', resetBook);
+
+            // Setting Controls
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const theme = e.currentTarget.getAttribute('data-theme');
+                    applyTheme(theme);
+                });
+            });
+
+            document.querySelectorAll('.font-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const font = e.currentTarget.getAttribute('data-font');
+                    applyFont(font);
+                });
+            });
+
+            document.querySelectorAll('.align-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const align = e.currentTarget.getAttribute('data-align');
+                    applyAlign(align);
+                });
+            });
+
+            document.getElementById('slider-fontsize').addEventListener('input', (e) => {
+                applyFontSize(parseInt(e.target.value));
+            });
+        }
+
+        // File Processing
+        function handleFileSelect(e) {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.json')) {
+                alert('Por favor, selecciona un archivo con extensión .json');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const jsonContent = JSON.parse(e.target.result);
+                    parseAndLoadJSON(jsonContent, file.name);
+                } catch (err) {
+                    alert('Error al leer el archivo JSON: Estructura no válida.');
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /**
+         * Flexible / Robust JSON Parser
+         * Tries to find story title, chapters, and markdown content across various common JSON structures
+         */
+        function parseAndLoadJSON(json, fileName) {
+            let extractedTitle = json.title || json.book_title || json.name || json.story_title || fileName.replace('.json', '');
+            let extractedChapters = [];
+
+            // Case 1: JSON Root is array of chapters or items
+            if (Array.isArray(json)) {
+                extractedChapters = json.map((item, idx) => parseSingleChapter(item, idx));
+            } 
+            // Case 2: JSON is object with chapters/episodes/pages array
+            else if (json.chapters || json.episodes || json.pages || json.content || json.data) {
+                const list = json.chapters || json.episodes || json.pages || json.content || json.data;
+                if (Array.isArray(list)) {
+                    extractedChapters = list.map((item, idx) => parseSingleChapter(item, idx));
+                } else if (typeof list === 'string') {
+                    // Single string content in a field
+                    extractedChapters = [{ title: 'Capítulo Único', content: list }];
+                }
+            } 
+            // Case 3: JSON object itself is a single chapter
+            else {
+                extractedChapters = [parseSingleChapter(json, 0)];
+            }
+
+            // Filter valid chapters
+            extractedChapters = extractedChapters.filter(ch => ch.content && ch.content.trim().length > 0);
+
+            if (extractedChapters.length === 0) {
+                alert('No se pudieron extraer capítulos o texto válido de este JSON.');
+                return;
+            }
+
+            bookData = {
+                title: extractedTitle,
+                chapters: extractedChapters
+            };
+
+            currentChapterIndex = 0;
+            saveBookState();
+            renderBook();
+        }
+
+        function parseSingleChapter(item, index) {
+            if (typeof item === 'string') {
+                return {
+                    title: `Capítulo ${index + 1}`,
+                    content: item
+                };
+            }
+
+            // Find title field
+            const title = item.title || item.chapter_title || item.name || item.header || `Capítulo ${index + 1}`;
+            
+            // Find text/body field (recursive search for string content)
+            let content = item.content || item.text || item.body || item.markdown || item.story || item.description || '';
+
+            // Handle nested objects or arrays of paragraphs/messages (e.g., chat logs)
+            if (Array.isArray(content)) {
+                content = content.map(sub => {
+                    if (typeof sub === 'string') return sub;
+                    if (sub.text || sub.message || sub.content) return `**${sub.sender || sub.author || ''}**: ${sub.text || sub.message || sub.content}`;
+                    return JSON.stringify(sub);
+                }).join('\n\n');
+            } else if (typeof content === 'object') {
+                content = JSON.stringify(content, null, 2);
+            }
+
+            return { title, content };
+        }
+
+        // Render Loaded Book
+        function renderBook() {
+            if (!bookData.chapters || bookData.chapters.length === 0) return;
+
+            importSection.classList.add('hidden');
+            readerSection.classList.remove('hidden');
+
+            tocStoryTitle.textContent = bookData.title;
+            navStoryTitle.textContent = bookData.title;
+
+            renderChapterList();
+            displayChapter(currentChapterIndex);
+        }
+
+        function displayChapter(index) {
+            if (index < 0 || index >= bookData.chapters.length) return;
+
+            currentChapterIndex = index;
+            const chapter = bookData.chapters[index];
+
+            // Update UI elements
+            navChapterTitle.textContent = chapter.title;
+            storyHeaderTag.textContent = bookData.title;
+            chapterMainTitle.textContent = chapter.title;
+            chapterCountIndicator.textContent = `Capítulo ${index + 1} de ${bookData.chapters.length}`;
+
+            // Calculate estimated reading time
+            const words = chapter.content.split(/\s+/).length;
+            const minutes = Math.max(1, Math.ceil(words / 200));
+            readTime.innerHTML = `<i class="fa-regular fa-clock mr-1"></i> ~${minutes} min lect.`;
+
+            // Render Markdown
+            readerBody.innerHTML = marked.parse(chapter.content);
+
+            // Update navigation button states
+            btnPrevChapter.disabled = index === 0;
+            btnNextChapter.disabled = index === bookData.chapters.length - 1;
+
+            // Update active state in TOC
+            updateTocActiveState();
+
+            // Scroll top smoothly
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            saveBookState();
+        }
+
+        function navigateChapter(direction) {
+            const nextIdx = currentChapterIndex + direction;
+            if (nextIdx >= 0 && nextIdx < bookData.chapters.length) {
+                displayChapter(nextIdx);
+            }
+        }
+
+        // TOC Drawer UI
+        function renderChapterList() {
+            chapterList.innerHTML = '';
+            bookData.chapters.forEach((ch, idx) => {
+                const item = document.createElement('button');
+                item.className = `toc-item w-full text-left p-3 rounded-xl text-xs font-medium transition flex items-center justify-between ${idx === currentChapterIndex ? 'bg-wattpad-orange/10 text-wattpad-orange font-bold' : 'hover:bg-black/5 dark:hover:bg-white/5'}`;
+                item.innerHTML = `
+                    <span class="truncate pr-2">${idx + 1}. ${ch.title}</span>
+                    ${idx === currentChapterIndex ? '<i class="fa-solid fa-book-open text-xs"></i>' : ''}
+                `;
+                item.addEventListener('click', () => {
+                    displayChapter(idx);
+                    closeToc();
+                });
+                chapterList.appendChild(item);
+            });
+        }
+
+        function updateTocActiveState() {
+            const items = chapterList.querySelectorAll('.toc-item');
+            items.forEach((item, idx) => {
+                if (idx === currentChapterIndex) {
+                    item.className = 'toc-item w-full text-left p-3 rounded-xl text-xs font-bold transition flex items-center justify-between bg-wattpad-orange/10 text-wattpad-orange';
+                } else {
+                    item.className = 'toc-item w-full text-left p-3 rounded-xl text-xs font-medium transition flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5';
+                }
+            });
+        }
+
+        function openToc() {
+            tocDrawer.classList.remove('translate-x-full');
+            tocBackdrop.classList.remove('opacity-0');
+            tocBackdrop.classList.add('opacity-100');
+        }
+
+        function closeToc() {
+            tocDrawer.classList.add('translate-x-full');
+            tocBackdrop.classList.remove('opacity-100');
+            tocBackdrop.classList.add('opacity-0');
+        }
+
+        // Settings Modal UI
+        function openSettings() {
+            settingsModal.classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            settingsModal.classList.add('hidden');
+        }
+
+        // Settings & Theme Functions
+        function applyTheme(themeName) {
+            document.body.classList.remove('theme-light', 'theme-dark', 'theme-sepia', 'theme-oled');
+            document.body.classList.add(themeName);
+            
+            // Toggle Tailwind dark class for standard dark/OLED styles
+            if (themeName === 'theme-dark' || themeName === 'theme-oled') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            settings.theme = themeName;
+            saveSettings();
+        }
+
+        function applyFont(fontFamilyClass) {
+            const reader = document.getElementById('reader-body');
+            reader.classList.remove('font-sans', 'font-serif', 'font-mono');
+            reader.classList.add(fontFamilyClass);
+
+            settings.fontFamily = fontFamilyClass;
+            saveSettings();
+        }
+
+        function applyFontSize(size) {
+            readerBody.style.fontSize = `${size}px`;
+            document.getElementById('font-size-label').textContent = `${size}px`;
+            settings.fontSize = size;
+            saveSettings();
+        }
+
+        function applyAlign(alignmentClass) {
+            readerBody.classList.remove('text-left', 'text-justify');
+            readerBody.classList.add(alignmentClass);
+
+            settings.textAlign = alignmentClass;
+            saveSettings();
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem(SETTINGS_KEY);
+            if (saved) {
+                try { settings = { ...settings, ...JSON.parse(saved) }; } catch(e){}
+            }
+
+            applyTheme(settings.theme);
+            applyFont(settings.fontFamily);
+            applyFontSize(settings.fontSize);
+            applyAlign(settings.textAlign);
+
+            document.getElementById('slider-fontsize').value = settings.fontSize;
+        }
+
+        function saveSettings() {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        }
+
+        // Storage & Persistence
+        function saveBookState() {
+            if (bookData.chapters.length > 0) {
+                const state = {
+                    bookData,
+                    currentChapterIndex,
+                    scrollPosition: window.scrollY
+                };
+                localStorage.setItem(STATE_KEY, JSON.stringify(state));
+            }
+        }
+
+        function loadSavedBookState() {
+            const saved = localStorage.getItem(STATE_KEY);
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    bookData = state.bookData;
+                    currentChapterIndex = state.currentChapterIndex || 0;
+                    renderBook();
+                } catch(e) {
+                    console.error("Error loading saved book state", e);
+                }
+            }
+        }
+
+        function resetBook() {
+            if (confirm("¿Deseas cerrar la historia actual y cargar un nuevo JSON?")) {
+                localStorage.removeItem(STATE_KEY);
+                bookData = { title: '', chapters: [] };
+                currentChapterIndex = 0;
+                readerSection.classList.add('hidden');
+                importSection.classList.remove('hidden');
+                navStoryTitle.textContent = "JSON eReader";
+                navChapterTitle.textContent = "Cargar Archivo .JSON";
+                closeToc();
+            }
+        }
+
+        // Reading Scroll Progress Indicator
+        function setupScrollProgress() {
+            window.addEventListener('scroll', () => {
+                const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+                const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                if (height > 0) {
+                    const scrolled = (winScroll / height) * 100;
+                    progressBar.style.width = scrolled + "%";
+                }
+            });
+        }
+
+        // Demo JSON Loader
+        function loadDemoJSON() {
+            const demoData = {
+                title: "El Secreto del Código Nocturno",
+                chapters: [
+                    {
+                        title: "Capítulo 1: El Descubrimiento",
+                        content: `Un resplandor azul pálido iluminaba la habitación a oscuras. **Mateo** tecleaba sin descanso, sus ojos reflejando líneas de código que parecían moverse por sí solas.\n\n> "Si este script funciona, habremos descubierto el archivo traducido original", murmuró para sí mismo.\n\n### Formato Markdown Integrado\nEste eReader interpreta automáticamente sintaxis estándar:\n- **Negritas** e *itálicas*\n- Títulos estilizados y citas destacadas\n- Listas de tareas o notas de diálogo\n\nEl sistema detecta automáticamente estructuras JSON complejas o simples archivos de texto serializados.`
+                    },
+                    {
+                        title: "Capítulo 2: La Conexión",
+                        content: `Las luces de la ciudad parpadearon fuera del ventanal. Mateo tomó un sorbo de café frío y volvió a la pantalla.\n\nEl archivo JSON cargado mostraba una historia dividida en múltiples fragmentos. *Wattpad-Style Reader* convertía cada objeto en una página elegante y fluida.\n\n\`\`\`javascript\n// Ejemplo de estructura JSON compatible\n{\n  "title": "Mi Novela JSON",\n  "chapters": [\n    { "title": "Capítulo 1", "content": "Texto aquí..." }\n  ]\n}\n\`\`\`\n\nListo para continuar la lectura cuando quieras sin perder tu avance.`
+                    }
+                ]
+            };
+            parseAndLoadJSON(demoData, "demo_story.json");
+        }
+    </script>
+</body>
+</html>
