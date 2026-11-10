@@ -17,13 +17,12 @@
             theme: {
                 extend: {
                     colors: {
-                        pastel: {
-                            pink: '#ffb7c5',
-                            lightpink: '#ffe4e9',
-                            darkpink: '#e88f9e',
-                            dark: '#161214',
-                            card: '#221a1d',
-                            reader: '#161214'
+                        pastel: { 
+                            pink: '#ffb7b2', 
+                            lightpink: '#ffe5e2', 
+                            dark: '#1a1618', 
+                            card: '#262023', 
+                            reader: '#1a1618' 
                         }
                     }
                 }
@@ -89,7 +88,7 @@
                 </div>
                 <button onclick="saveCuratedBook()" class="px-3 py-1.5 bg-pastel-pink text-gray-900 text-xs font-bold rounded-xl shadow-md">Guardar Libro</button>
             </div>
-            <div class="px-6 py-3 bg-pink-50 dark:bg-pastel-pink/10 border-b border-pink-100 dark:border-pastel-pink/20 text-xs text-pastel-darkpink font-medium shrink-0">
+            <div class="px-6 py-3 bg-pink-50 dark:bg-pastel-pink/10 border-b border-pink-100 dark:border-pastel-pink/20 text-xs text-pastel-pink font-medium shrink-0">
                 Se han filtrado las respuestas del asistente. Revisa y desmarca bloques innecesarios si lo deseas.
             </div>
             <div class="px-6 py-4 flex-1 overflow-y-auto space-y-3" id="selector-list"></div>
@@ -122,7 +121,7 @@
             </div>
 
             <!-- Contenedor del lector sin scrollbar visible pero totalmente deslizable -->
-            <div id="reader-container" onscroll="handleScroll()" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
+            <div id="reader-container" onclick="toggleReaderControls()" onscroll="handleScroll()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
 
             <!-- Footer / Controles inferiores -->
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-pastel-reader/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex flex-col px-6 py-3 z-30 transition-transform duration-300 space-y-2">
@@ -311,7 +310,7 @@
                 <div class="p-3 bg-white dark:bg-pastel-card rounded-2xl border ${item.selected ? 'border-pastel-pink' : 'border-gray-200 dark:border-gray-800 opacity-60'} flex items-start space-x-3 transition">
                     <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleItemSelection(${idx})" class="mt-1 w-5 h-5 accent-pastel-pink rounded cursor-pointer">
                     <div class="flex-1 cursor-pointer" onclick="toggleItemSelection(${idx})">
-                        <span class="text-xs font-bold text-pastel-darkpink block mb-1">Capítulo / Bloque #${idx + 1}</span>
+                        <span class="text-xs font-bold text-pastel-pink block mb-1">Capítulo / Bloque #${idx + 1}</span>
                         <p class="text-xs line-clamp-3 text-gray-700 dark:text-gray-300">${item.text}</p>
                     </div>
                 </div>
@@ -359,13 +358,13 @@
                 return `
                 <div onclick="loadBook(${index})" class="flex items-center justify-between p-4 bg-white dark:bg-pastel-card rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm cursor-pointer active:scale-98 transition">
                     <div class="flex items-center space-x-3 truncate">
-                        <div class="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pastel-pink/20 text-pastel-darkpink flex items-center justify-center font-bold"><i class="fa-solid fa-book"></i></div>
+                        <div class="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pastel-pink/20 text-pastel-pink flex items-center justify-center font-bold"><i class="fa-solid fa-book"></i></div>
                         <div class="truncate">
                             <h3 class="font-bold text-sm truncate">${book.title}</h3>
                             <p class="text-xs text-gray-400">Progreso: Cap. ${progress} de ${book.chapters.length}</p>
                         </div>
                     </div>
-                    <button onclick="event.stopPropagation(); deleteBook(${index})" class="text-gray-400 hover:text-red-400 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                    <button onclick="event.stopPropagation(); deleteBook(${index})" class="text-gray-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
                 </div>
             `;
             }).join('');
@@ -403,7 +402,7 @@
             document.getElementById('toc-book-title').innerText = currentBook.title;
             const listEl = document.getElementById('toc-chapters-list');
             listEl.innerHTML = currentBook.chapters.map((ch, idx) => `
-                <div onclick="openReader(${idx})" class="py-3.5 px-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition ${idx === currentBook.lastChapterIndex ? 'text-pastel-darkpink font-bold' : ''}">
+                <div onclick="openReader(${idx})" class="py-3.5 px-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition ${idx === currentBook.lastChapterIndex ? 'text-pastel-pink font-bold' : ''}">
                     <span class="text-sm truncate pr-4">${ch.title}</span>
                     ${idx === currentBook.lastChapterIndex ? '<i class="fa-solid fa-bookmark text-xs"></i>' : '<i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>'}
                 </div>
