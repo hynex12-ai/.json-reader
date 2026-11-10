@@ -37,7 +37,7 @@
 </head>
 <body class="bg-gray-100 dark:bg-wattpad-dark text-gray-800 dark:text-gray-200 font-sans-custom transition-colors duration-300 antialiased select-none overflow-hidden">
 
-    <!-- Contenedor general forzado a altura de pantalla exacta para evitar scroll global -->
+    <!-- Contenedor general forzado a altura de pantalla exacta -->
     <div id="app" class="max-w-md mx-auto h-[100dvh] flex flex-col relative bg-white dark:bg-wattpad-reader shadow-2xl overflow-hidden">
 
         <!-- VISTA 1: BIBLIOTECA -->
@@ -109,8 +109,8 @@
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
-            <!-- Contenedor del lector con aislamiento estricto de scroll (overflow-y-auto y min-h-0) -->
-            <div id="reader-container" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-24 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
+            <!-- Contenedor del lector con escucha de scroll en tiempo real -->
+            <div id="reader-container" onscroll="handleScroll()" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-24 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
 
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center justify-between z-30 transition-transform duration-300">
                 <button onclick="prevChapter()" class="px-4 py-2 text-sm font-bold bg-gray-100 dark:bg-gray-800 rounded-xl active:scale-95 transition"><i class="fa-solid fa-chevron-left mr-1"></i> Anterior</button>
@@ -156,11 +156,12 @@
     </div>
 
     <script>
-        let currentBook = { title: "Sin título", chapters: [], lastChapterIndex: 0 };
+        let currentBook = { title: "Sin título", chapters: [], lastChapterIndex: 0, scrollPositions: {} };
         let tempExtractedItems = [];
         let currentChapterIndex = 0;
         let readerSettings = { theme: 'dark', fontSize: 17, font: 'sans' };
         let controlsVisible = true;
+        let scrollTimeout = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedSettings = localStorage.getItem('reader_settings');
@@ -265,7 +266,8 @@
             currentBook = {
                 title: globalTitle,
                 chapters: [],
-                lastChapterIndex: 0
+                lastChapterIndex: 0,
+                scrollPositions: {} // Diccionario para guardar el scroll exacto por capítulo
             };
             renderSelectorView();
         }
@@ -305,6 +307,7 @@
 
             currentBook.chapters = selectedChapters;
             currentBook.lastChapterIndex = 0;
+            currentBook.scrollPositions = {};
             saveBookToLocalStorage(currentBook);
             openReader(0);
         }
@@ -343,6 +346,7 @@
         function loadBook(index) {
             const saved = JSON.parse(localStorage.getItem('illyrium_books') || '[]');
             currentBook = saved[index];
+            if (!currentBook.scrollPositions) currentBook.scrollPositions = {};
             const targetChapter = currentBook.lastChapterIndex || 0;
             openReader(targetChapter);
         }
@@ -402,17 +406,35 @@
             const container = document.getElementById('reader-container');
             container.innerHTML = marked.parse(chapter.text);
             
-            // Desenfoque para evitar interacción fantasma de teclado/foco
             if (document.activeElement) {
                 document.activeElement.blur();
             }
 
-            // Forzar el reseteo absoluto del scroll mediante scrollTo nativo y manipulación directa
-            container.scrollTop = 0;
-            container.scrollTo({ top: 0, behavior: 'instant' });
+            // RECUPERAR POSICIÓN EXACTA: Restaurar el scroll guardado para este capítulo específico (si existe)
+            const savedScroll = (currentBook.scrollPositions && currentBook.scrollPositions[currentChapterIndex]) || 0;
+            
             requestAnimationFrame(() => {
-                container.scrollTop = 0;
+                container.scrollTop = savedScroll;
+                requestAnimationFrame(() => {
+                    container.scrollTop = savedScroll;
+                });
             });
+        }
+
+        // FUNCIÓN DE AUTOGUARDADO DE SCROLL EN TIEMPO REAL
+        function handleScroll() {
+            const container = document.getElementById('reader-container');
+            if (!container) return;
+
+            // Usamos debounce para guardar cada 300ms mientras el usuario hace scroll (evita sobrecargar localStorage)
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                if (!currentBook.scrollPositions) {
+                    currentBook.scrollPositions = {};
+                }
+                currentBook.scrollPositions[currentChapterIndex] = container.scrollTop;
+                saveBookToLocalStorage(currentBook);
+            }, 300);
         }
 
         function nextChapter() {
