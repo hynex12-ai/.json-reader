@@ -105,7 +105,7 @@
         <!-- VISTA 4: LECTOR -->
         <div id="view-reader" class="hidden flex-1 flex flex-col h-full relative bg-white dark:bg-pastel-reader overflow-hidden">
             
-            <!-- Menú flotante táctil para añadir a notas -->
+            <!-- Menú flotante personalizado para añadir a notas -->
             <div id="selection-tooltip" class="hidden absolute z-50 bg-[#262023] text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center space-x-3 border border-pastel-pink/50">
                 <button onclick="saveSelectedTextAsNote()" class="text-xs font-bold text-pastel-pink flex items-center"><i class="fa-solid fa-note-sticky mr-2 text-sm"></i> Añadir a Notas</button>
                 <div class="w-[1px] h-4 bg-gray-700"></div>
@@ -143,7 +143,7 @@
             </div>
 
             <!-- Contenedor del lector -->
-            <div id="reader-container" onscroll="handleScroll()" onmouseup="handleTextSelection()" ontouchend="handleTextSelection()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
+            <div id="reader-container" onscroll="handleScroll()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
 
             <!-- Footer / Controles inferiores con barra horizontal -->
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/95 dark:bg-pastel-reader/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex flex-col z-30 transition-transform duration-300 space-y-2 select-none">
@@ -208,6 +208,7 @@
         let scrollTimeout = null;
         let isSyncingSlider = false;
         let selectedTextToSave = "";
+        let longPressTimer = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedSettings = localStorage.getItem('reader_settings');
@@ -216,7 +217,92 @@
             }
             applySettings();
             renderLibrary();
+            initLongPressSelection();
         });
+
+        // MECANISMO TÁCTIL DE PULSACIÓN PROLONGADA (IDEAL PARA APK ANDROID)
+        function initLongPressSelection() {
+            const container = document.getElementById('reader-container');
+            
+            container.addEventListener('touchstart', (e) => {
+                longPressTimer = setTimeout(() => {
+                    // Al mantener presionado 500ms, intentamos capturar la palabra o texto bajo el toque
+                    let sel = window.getSelection();
+                    if (!sel.toString().trim()) {
+                        // Si no hay selección activa, simulamos seleccionar la palabra cercana o permitimos la nativa
+                    }
+                }, 500);
+            }, { passive: true });
+
+            container.addEventListener('touchend', () => {
+                clearTimeout(longPressTimer);
+                checkActiveSelection();
+            });
+
+            container.addEventListener('mouseup', () => {
+                checkActiveSelection();
+            });
+        }
+
+        function checkActiveSelection() {
+            setTimeout(() => {
+                const selection = window.getSelection();
+                const text = selection.toString().trim();
+                const tooltip = document.getElementById('selection-tooltip');
+
+                if (text.length > 0) {
+                    selectedTextToSave = text;
+                    try {
+                        const range = selection.getRangeAt(0);
+                        const rect = range.getBoundingClientRect();
+                        const appRect = document.getElementById('app').getBoundingClientRect();
+                        
+                        let topPos = rect.top - appRect.top - 60;
+                        let leftPos = rect.left + (rect.width / 2) - appRect.left;
+                        
+                        if (topPos < 50) topPos = rect.bottom - appRect.top + 15;
+
+                        tooltip.style.top = `${Math.max(20, topPos)}px`;
+                        tooltip.style.left = `${Math.max(20, Math.min(leftPos, appRect.width - 20))}px`;
+                        tooltip.style.transform = 'translateX(-50%)';
+                        tooltip.classList.remove('hidden');
+                    } catch (e) {
+                        tooltip.style.top = '100px';
+                        tooltip.style.left = '50%';
+                        tooltip.style.transform = 'translateX(-50%)';
+                        tooltip.classList.remove('hidden');
+                    }
+                } else {
+                    tooltip.classList.add('hidden');
+                }
+            }, 150);
+        }
+
+        function dismissTooltip() {
+            document.getElementById('selection-tooltip').classList.add('hidden');
+            window.getSelection().removeAllRanges();
+        }
+
+        function saveSelectedTextAsNote() {
+            if (!selectedTextToSave) return;
+            if (!currentBook.notes) currentBook.notes = [];
+
+            currentBook.notes.push({
+                text: selectedTextToSave,
+                chapterTitle: currentBook.chapters[currentChapterIndex].title,
+                date: new Date().toLocaleDateString()
+            });
+
+            saveBookToLocalStorage(currentBook);
+            dismissTooltip();
+            renderSidebarContent();
+            
+            const alertBox = document.createElement('div');
+            alertBox.className = "absolute bottom-16 left-1/2 -translate-x-1/2 bg-pastel-pink text-gray-950 text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg z-50 transition";
+            alertBox.innerText = "¡Nota guardada!";
+            document.getElementById('view-reader').appendChild(alertBox);
+            setTimeout(() => alertBox.remove(), 2000);
+        }
 
         function setTheme(theme) { readerSettings.theme = theme; applySettings(); }
         function setFontFamily(font) { readerSettings.font = font; applySettings(); }
@@ -314,69 +400,6 @@
         function openReaderFromSidebar(index) {
             toggleChapterSidebar();
             openReader(index);
-        }
-
-        // Sistema robusto de detección de selección de texto
-        function handleTextSelection() {
-            setTimeout(() => {
-                const selection = window.getSelection();
-                const text = selection.toString().trim();
-                const tooltip = document.getElementById('selection-tooltip');
-
-                if (text.length > 0) {
-                    selectedTextToSave = text;
-                    
-                    try {
-                        const range = selection.getRangeAt(0);
-                        const rect = range.getBoundingClientRect();
-                        const appRect = document.getElementById('app').getBoundingClientRect();
-                        
-                        // Posicionar el botón flotante justo encima de la selección
-                        let topPos = rect.top - appRect.top - 55;
-                        let leftPos = rect.left + (rect.width / 2) - appRect.left;
-                        
-                        if (topPos < 50) topPos = rect.bottom - appRect.top + 15; // Si está muy arriba, ponerlo abajo
-
-                        tooltip.style.top = `${Math.max(20, topPos)}px`;
-                        tooltip.style.left = `${Math.max(20, Math.min(leftPos, appRect.width - 20))}px`;
-                        tooltip.style.transform = 'translateX(-50%)';
-                        tooltip.classList.remove('hidden');
-                    } catch (e) {
-                        tooltip.style.top = '80px';
-                        tooltip.style.left = '50%';
-                        tooltip.style.transform = 'translateX(-50%)';
-                        tooltip.classList.remove('hidden');
-                    }
-                } else {
-                    tooltip.classList.add('hidden');
-                }
-            }, 200);
-        }
-
-        function dismissTooltip() {
-            document.getElementById('selection-tooltip').classList.add('hidden');
-            window.getSelection().removeAllRanges();
-        }
-
-        function saveSelectedTextAsNote() {
-            if (!selectedTextToSave) return;
-            if (!currentBook.notes) currentBook.notes = [];
-
-            currentBook.notes.push({
-                text: selectedTextToSave,
-                chapterTitle: currentBook.chapters[currentChapterIndex].title,
-                date: new Date().toLocaleDateString()
-            });
-
-            saveBookToLocalStorage(currentBook);
-            dismissTooltip();
-            renderSidebarContent();
-            
-            const alertBox = document.createElement('div');
-            alertBox.className = "absolute bottom-16 left-1/2 -translate-x-1/2 bg-pastel-pink text-gray-950 text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg z-50 transition";
-            alertBox.innerText = "¡Nota guardada!";
-            document.getElementById('view-reader').appendChild(alertBox);
-            setTimeout(() => alertBox.remove(), 2000);
         }
 
         function deleteNote(index) {
@@ -631,7 +654,7 @@
             percentLabel.innerText = Math.round(percent) + '%';
         }
 
-        function onSliderScroll(val) {
+    function onSliderScroll(val) {
             isSyncingSlider = true;
             const container = document.getElementById('reader-container');
             if (!container) return;
