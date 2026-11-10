@@ -29,10 +29,6 @@
         .reader-content strong { color: currentColor; font-weight: bold; }
         .reader-content em { font-style: italic; }
         
-        /* Ocultar barra de scroll lateral en todos los navegadores conservando la funcionalidad */
-        #reader-container::-webkit-scrollbar { display: none; }
-        #reader-container { -ms-overflow-style: none; scrollbar-width: none; }
-
         /* Tipografías personalizadas */
         .font-sans-custom { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .font-serif-custom { font-family: Cambria, Georgia, 'Times New Roman', serif; }
@@ -104,7 +100,6 @@
 
         <!-- VISTA 4: LECTOR -->
         <div id="view-reader" class="hidden flex-1 flex flex-col h-full relative bg-white dark:bg-wattpad-reader overflow-hidden">
-            <!-- Header Superior -->
             <div id="reader-header" class="absolute top-0 left-0 right-0 px-6 py-4 flex items-center justify-between bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 z-30 transition-transform duration-300">
                 <div class="flex items-center space-x-3">
                     <button onclick="goToc()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-list"></i></button>
@@ -114,28 +109,13 @@
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
-            <!-- Contenedor del lector sin scrollbar visible pero totalmente deslizable -->
-            <div id="reader-container" onscroll="handleScroll()" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
+            <!-- Contenedor del lector con escucha de scroll en tiempo real -->
+            <div id="reader-container" onscroll="handleScroll()" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-24 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
 
-            <!-- Footer / Controles inferiores -->
-            <div id="reader-footer" class="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-wattpad-reader/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex flex-col px-6 py-3 z-30 transition-transform duration-300 space-y-2">
-                
-                <!-- Barra de Progreso horizontal (Scrollbar inferior interactiva) -->
-                <div class="flex items-center space-x-3">
-                    <span id="scroll-percent" class="text-[10px] text-gray-400 font-mono w-8 text-right">0%</span>
-                    <input type="range" id="chapter-scrollbar" min="0" max="100" value="0" step="0.1" oninput="onSliderScroll(this.value)" class="w-full accent-wattpad-orange cursor-pointer h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg">
-                </div>
-
-                <!-- Botones de navegación y selector rápido de capítulos -->
-                <div class="flex items-center justify-between">
-                    <button onclick="prevChapter()" class="px-3 py-1.5 text-xs font-bold bg-gray-100 dark:bg-gray-800 rounded-xl active:scale-95 transition"><i class="fa-solid fa-chevron-left mr-1"></i> Anterior</button>
-                    
-                    <!-- Selector rápido integrado en la barra inferior -->
-                    <select id="bottom-chapter-select" onchange="openReader(parseInt(this.value))" class="bg-gray-100 dark:bg-gray-800 text-xs font-bold px-3 py-1.5 rounded-xl border-none outline-none max-w-[140px] truncate cursor-pointer">
-                    </select>
-
-                    <button onclick="nextChapter()" class="px-3 py-1.5 text-xs font-bold bg-wattpad-orange text-white rounded-xl active:scale-95 transition">Siguiente <i class="fa-solid fa-chevron-right ml-1"></i></button>
-                </div>
+            <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center justify-between z-30 transition-transform duration-300">
+                <button onclick="prevChapter()" class="px-4 py-2 text-sm font-bold bg-gray-100 dark:bg-gray-800 rounded-xl active:scale-95 transition"><i class="fa-solid fa-chevron-left mr-1"></i> Anterior</button>
+                <span id="reader-progress" class="text-xs text-gray-400">1 / 1</span>
+                <button onclick="nextChapter()" class="px-4 py-2 text-sm font-bold bg-wattpad-orange text-white rounded-xl active:scale-95 transition">Siguiente <i class="fa-solid fa-chevron-right ml-1"></i></button>
             </div>
         </div>
 
@@ -182,7 +162,6 @@
         let readerSettings = { theme: 'dark', fontSize: 17, font: 'sans' };
         let controlsVisible = true;
         let scrollTimeout = null;
-        let isSyncingSlider = false;
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedSettings = localStorage.getItem('reader_settings');
@@ -288,7 +267,7 @@
                 title: globalTitle,
                 chapters: [],
                 lastChapterIndex: 0,
-                scrollPositions: {}
+                scrollPositions: {} // Diccionario para guardar el scroll exacto por capítulo
             };
             renderSelectorView();
         }
@@ -414,13 +393,6 @@
             document.getElementById('view-library').classList.add('hidden');
             document.getElementById('view-selector').classList.add('hidden');
             document.getElementById('view-reader').classList.remove('hidden');
-            
-            // Poblar el selector de capítulos inferior
-            const selectEl = document.getElementById('bottom-chapter-select');
-            selectEl.innerHTML = currentBook.chapters.map((ch, idx) => `
-                <option value="${idx}" ${idx === currentChapterIndex ? 'selected' : ''}>${ch.title}</option>
-            `).join('');
-
             renderChapter();
         }
 
@@ -438,67 +410,31 @@
                 document.activeElement.blur();
             }
 
+            // RECUPERAR POSICIÓN EXACTA: Restaurar el scroll guardado para este capítulo específico (si existe)
             const savedScroll = (currentBook.scrollPositions && currentBook.scrollPositions[currentChapterIndex]) || 0;
             
             requestAnimationFrame(() => {
                 container.scrollTop = savedScroll;
-                updateScrollbarUI();
                 requestAnimationFrame(() => {
                     container.scrollTop = savedScroll;
-                    updateScrollbarUI();
                 });
             });
         }
 
-        // Actualizar barra horizontal inferior y porcentaje mientras se lee
+        // FUNCIÓN DE AUTOGUARDADO DE SCROLL EN TIEMPO REAL
         function handleScroll() {
-            if (isSyncingSlider) return;
             const container = document.getElementById('reader-container');
             if (!container) return;
 
-            updateScrollbarUI();
-
+            // Usamos debounce para guardar cada 300ms mientras el usuario hace scroll (evita sobrecargar localStorage)
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {
-                if (!currentBook.scrollPositions) currentBook.scrollPositions = {};
+                if (!currentBook.scrollPositions) {
+                    currentBook.scrollPositions = {};
+                }
                 currentBook.scrollPositions[currentChapterIndex] = container.scrollTop;
                 saveBookToLocalStorage(currentBook);
             }, 300);
-        }
-
-        function updateScrollbarUI() {
-            const container = document.getElementById('reader-container');
-            const slider = document.getElementById('chapter-scrollbar');
-            const percentLabel = document.getElementById('scroll-percent');
-            if (!container || !slider) return;
-
-            const maxScroll = container.scrollHeight - container.clientHeight;
-            const currentScroll = container.scrollTop;
-            
-            let percent = maxScroll > 0 ? (currentScroll / maxScroll) * 100 : 0;
-            percent = Math.min(Math.max(percent, 0), 100);
-
-            slider.value = percent;
-            percentLabel.innerText = Math.round(percent) + '%';
-        }
-
-        // Mover el slider horizontalmente desplaza el texto del capítulo en tiempo real
-        function onSliderScroll(val) {
-            isSyncingSlider = true;
-            const container = document.getElementById('reader-container');
-            if (!container) return;
-
-            const maxScroll = container.scrollHeight - container.clientHeight;
-            container.scrollTop = (val / 100) * maxScroll;
-            document.getElementById('scroll-percent').innerText = Math.round(val) + '%';
-
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                if (!currentBook.scrollPositions) currentBook.scrollPositions = {};
-                currentBook.scrollPositions[currentChapterIndex] = container.scrollTop;
-                saveBookToLocalStorage(currentBook);
-                isSyncingSlider = false;
-            }, 150);
         }
 
         function nextChapter() {
@@ -506,7 +442,7 @@
                 currentChapterIndex++; 
                 currentBook.lastChapterIndex = currentChapterIndex;
                 saveBookToLocalStorage(currentBook);
-                openReader(currentChapterIndex); 
+                renderChapter(); 
             }
         }
 
@@ -515,7 +451,7 @@
                 currentChapterIndex--; 
                 currentBook.lastChapterIndex = currentChapterIndex;
                 saveBookToLocalStorage(currentBook);
-                openReader(currentChapterIndex); 
+                renderChapter(); 
             }
         }
 
