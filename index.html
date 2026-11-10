@@ -108,7 +108,8 @@
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
-            <div id="reader-container" onclick="toggleReaderControls()" class="flex-1 px-6 pt-20 pb-24 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
+            <!-- Contenedor con 'min-h-0' para obligarlo a hacer scroll independiente y correcto -->
+            <div id="reader-container" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-24 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
 
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center justify-between z-30 transition-transform duration-300">
                 <button onclick="prevChapter()" class="px-4 py-2 text-sm font-bold bg-gray-100 dark:bg-gray-800 rounded-xl active:scale-95 transition"><i class="fa-solid fa-chevron-left mr-1"></i> Anterior</button>
@@ -400,13 +401,15 @@
             const container = document.getElementById('reader-container');
             container.innerHTML = marked.parse(chapter.text);
             
-            // SOLUCIÓN DEFINITIVA: Forzar el scroll arriba de forma inmediata y asegurarlo con doble requestAnimationFrame
+            // Desenfocar el botón activo para evitar que el navegador mueva el scroll automáticamente
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+
+            // Forzar el scroll arriba de forma estricta y limpia
             container.scrollTop = 0;
             requestAnimationFrame(() => {
                 container.scrollTop = 0;
-                requestAnimationFrame(() => {
-                    container.scrollTop = 0;
-                });
             });
         }
 
