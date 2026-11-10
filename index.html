@@ -400,10 +400,14 @@
             const container = document.getElementById('reader-container');
             container.innerHTML = marked.parse(chapter.text);
             
-            // Garantiza reiniciar la barra de desplazamiento arriba
-            setTimeout(() => {
+            // SOLUCIÓN DEFINITIVA: Forzar el scroll arriba de forma inmediata y asegurarlo con doble requestAnimationFrame
+            container.scrollTop = 0;
+            requestAnimationFrame(() => {
                 container.scrollTop = 0;
-            }, 10);
+                requestAnimationFrame(() => {
+                    container.scrollTop = 0;
+                });
+            });
         }
 
         function nextChapter() {
