@@ -108,7 +108,6 @@
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
-            <!-- Contenedor con ID explícito para controlar el scroll de forma fiable -->
             <div id="reader-container" onclick="toggleReaderControls()" class="flex-1 px-6 pt-20 pb-24 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
 
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center justify-between z-30 transition-transform duration-300">
@@ -261,7 +260,11 @@
                 return;
             }
 
-            currentBook.title = globalTitle;
+            currentBook = {
+                title: globalTitle,
+                chapters: [],
+                lastChapterIndex: 0
+            };
             renderSelectorView();
         }
 
@@ -301,7 +304,7 @@
             currentBook.chapters = selectedChapters;
             currentBook.lastChapterIndex = 0;
             saveBookToLocalStorage(currentBook);
-            openReader(0); // Abrir directamente el primer capítulo
+            openReader(0);
         }
 
         function saveBookToLocalStorage(book) {
@@ -338,7 +341,6 @@
         function loadBook(index) {
             const saved = JSON.parse(localStorage.getItem('illyrium_books') || '[]');
             currentBook = saved[index];
-            // Abre directamente en el último capítulo guardado (o 0 por defecto)
             const targetChapter = currentBook.lastChapterIndex || 0;
             openReader(targetChapter);
         }
@@ -379,27 +381,29 @@
         function openReader(index) {
             currentChapterIndex = index;
             currentBook.lastChapterIndex = index;
-            
-            // Guardar el progreso actual en localStorage inmediatamente
             saveBookToLocalStorage(currentBook);
 
             document.getElementById('view-toc').classList.add('hidden');
             document.getElementById('view-library').classList.add('hidden');
+            document.getElementById('view-selector').classList.add('hidden');
             document.getElementById('view-reader').classList.remove('hidden');
             renderChapter();
         }
 
         function renderChapter() {
             const chapter = currentBook.chapters[currentChapterIndex];
+            if (!chapter) return;
+
             document.getElementById('reader-chapter-title').innerText = chapter.title;
             document.getElementById('reader-progress').innerText = `${currentChapterIndex + 1} / ${currentBook.chapters.length}`;
             
-            // Renderizar contenido
             const container = document.getElementById('reader-container');
             container.innerHTML = marked.parse(chapter.text);
             
-            // CORRECCIÓN CRÍTICA: Forzar el scroll exactamente al inicio de la caja del lector
-            container.scrollTop = 0;
+            // Garantiza reiniciar la barra de desplazamiento arriba
+            setTimeout(() => {
+                container.scrollTop = 0;
+            }, 10);
         }
 
         function nextChapter() {
