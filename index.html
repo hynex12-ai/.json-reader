@@ -35,13 +35,14 @@
         .font-mono-custom { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-wattpad-dark text-gray-800 dark:text-gray-200 font-sans-custom transition-colors duration-300 antialiased select-none">
+<body class="bg-gray-100 dark:bg-wattpad-dark text-gray-800 dark:text-gray-200 font-sans-custom transition-colors duration-300 antialiased select-none overflow-hidden">
 
-    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col relative bg-white dark:bg-wattpad-reader shadow-2xl">
+    <!-- Contenedor general forzado a altura de pantalla exacta para evitar scroll global -->
+    <div id="app" class="max-w-md mx-auto h-[100dvh] flex flex-col relative bg-white dark:bg-wattpad-reader shadow-2xl overflow-hidden">
 
         <!-- VISTA 1: BIBLIOTECA -->
-        <div id="view-library" class="flex-1 flex flex-col pb-20">
-            <header class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+        <div id="view-library" class="flex-1 flex flex-col h-full overflow-y-auto pb-20">
+            <header class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 shrink-0">
                 <div>
                     <h1 class="text-2xl font-black tracking-tight text-wattpad-orange"><i class="fa-solid fa-book-open-reader mr-2"></i>Illyrium Reader</h1>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Control total de capítulos</p>
@@ -51,7 +52,7 @@
                 </button>
             </header>
 
-            <div class="px-6 py-4">
+            <div class="px-6 py-4 shrink-0">
                 <label for="file-input" class="flex flex-col items-center justify-center border-2 border-dashed border-wattpad-orange/50 dark:border-wattpad-orange/40 rounded-2xl p-6 bg-orange-50/50 dark:bg-wattpad-orange/5 cursor-pointer hover:bg-orange-100/50 transition">
                     <div class="w-12 h-12 rounded-full bg-wattpad-orange text-white flex items-center justify-center text-xl shadow-lg shadow-wattpad-orange/30 mb-2">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -62,30 +63,30 @@
                 </label>
             </div>
 
-            <div class="px-6 flex-1">
+            <div class="px-6 flex-1 pb-10">
                 <h2 class="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Tus Libros</h2>
                 <div id="book-list" class="space-y-3"></div>
             </div>
         </div>
 
         <!-- VISTA 2: SELECTOR / CURADOR DE CAPÍTULOS -->
-        <div id="view-selector" class="hidden flex-1 flex flex-col pb-20">
-            <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur sticky top-0 z-10">
+        <div id="view-selector" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+            <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur shrink-0 z-10">
                 <div class="flex items-center">
                     <button onclick="goLibrary()" class="mr-4 text-lg text-gray-600 dark:text-gray-300"><i class="fa-solid fa-arrow-left"></i></button>
                     <h2 class="text-base font-bold">Selecciona los Capítulos</h2>
                 </div>
                 <button onclick="saveCuratedBook()" class="px-3 py-1.5 bg-wattpad-orange text-white text-xs font-bold rounded-xl shadow-md">Guardar Libro</button>
             </div>
-            <div class="px-6 py-3 bg-orange-50 dark:bg-wattpad-orange/10 border-b border-orange-100 dark:border-wattpad-orange/20 text-xs text-wattpad-orange font-medium">
+            <div class="px-6 py-3 bg-orange-50 dark:bg-wattpad-orange/10 border-b border-orange-100 dark:border-wattpad-orange/20 text-xs text-wattpad-orange font-medium shrink-0">
                 Se han filtrado las respuestas del asistente. Revisa y desmarca bloques innecesarios si lo deseas.
             </div>
             <div class="px-6 py-4 flex-1 overflow-y-auto space-y-3" id="selector-list"></div>
         </div>
 
         <!-- VISTA 3: ÍNDICE -->
-        <div id="view-toc" class="hidden flex-1 flex flex-col pb-20">
-            <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-wattpad-reader backdrop-blur sticky top-0 z-10">
+        <div id="view-toc" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+            <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-wattpad-reader backdrop-blur shrink-0 z-10">
                 <div class="flex items-center truncate pr-2">
                     <button onclick="goLibrary()" class="mr-4 text-lg text-gray-600 dark:text-gray-300"><i class="fa-solid fa-arrow-left"></i></button>
                     <h2 id="toc-book-title" class="text-lg font-bold truncate">Título</h2>
@@ -98,7 +99,7 @@
         </div>
 
         <!-- VISTA 4: LECTOR -->
-        <div id="view-reader" class="hidden flex-1 flex flex-col relative bg-white dark:bg-wattpad-reader">
+        <div id="view-reader" class="hidden flex-1 flex flex-col h-full relative bg-white dark:bg-wattpad-reader overflow-hidden">
             <div id="reader-header" class="absolute top-0 left-0 right-0 px-6 py-4 flex items-center justify-between bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 z-30 transition-transform duration-300">
                 <div class="flex items-center space-x-3">
                     <button onclick="goToc()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-list"></i></button>
@@ -108,7 +109,7 @@
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
-            <!-- Contenedor con 'min-h-0' para obligarlo a hacer scroll independiente y correcto -->
+            <!-- Contenedor del lector con aislamiento estricto de scroll (overflow-y-auto y min-h-0) -->
             <div id="reader-container" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-24 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
 
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center justify-between z-30 transition-transform duration-300">
@@ -184,7 +185,7 @@
             const app = document.getElementById('app');
             const readerContainer = document.getElementById('reader-container');
 
-            app.className = "max-w-md mx-auto min-h-screen flex flex-col relative shadow-2xl transition-colors duration-300 ";
+            app.className = "max-w-md mx-auto h-[100dvh] flex flex-col relative shadow-2xl transition-colors duration-300 overflow-hidden ";
             htmlEl.classList.remove('dark');
 
             if (readerSettings.theme === 'light') {
@@ -401,13 +402,14 @@
             const container = document.getElementById('reader-container');
             container.innerHTML = marked.parse(chapter.text);
             
-            // Desenfocar el botón activo para evitar que el navegador mueva el scroll automáticamente
+            // Desenfoque para evitar interacción fantasma de teclado/foco
             if (document.activeElement) {
                 document.activeElement.blur();
             }
 
-            // Forzar el scroll arriba de forma estricta y limpia
+            // Forzar el reseteo absoluto del scroll mediante scrollTo nativo y manipulación directa
             container.scrollTop = 0;
+            container.scrollTo({ top: 0, behavior: 'instant' });
             requestAnimationFrame(() => {
                 container.scrollTop = 0;
             });
