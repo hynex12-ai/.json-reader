@@ -17,7 +17,14 @@
             theme: {
                 extend: {
                     colors: {
-                        wattpad: { orange: '#ff5000', dark: '#121212', card: '#1e1e1e', reader: '#121212' }
+                        pastel: {
+                            pink: '#ffb7c5',
+                            lightpink: '#ffe4e9',
+                            darkpink: '#e88f9e',
+                            dark: '#161214',
+                            card: '#221a1d',
+                            reader: '#161214'
+                        }
                     }
                 }
             }
@@ -39,16 +46,16 @@
         .font-mono-custom { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-wattpad-dark text-gray-800 dark:text-gray-200 font-sans-custom transition-colors duration-300 antialiased select-none overflow-hidden">
+<body class="bg-gray-100 dark:bg-pastel-dark text-gray-800 dark:text-gray-200 font-sans-custom transition-colors duration-300 antialiased select-none overflow-hidden">
 
     <!-- Contenedor general forzado a altura de pantalla exacta -->
-    <div id="app" class="max-w-md mx-auto h-[100dvh] flex flex-col relative bg-white dark:bg-wattpad-reader shadow-2xl overflow-hidden">
+    <div id="app" class="max-w-md mx-auto h-[100dvh] flex flex-col relative bg-white dark:bg-pastel-reader shadow-2xl overflow-hidden">
 
         <!-- VISTA 1: BIBLIOTECA -->
         <div id="view-library" class="flex-1 flex flex-col h-full overflow-y-auto pb-20">
             <header class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 shrink-0">
                 <div>
-                    <h1 class="text-2xl font-black tracking-tight text-wattpad-orange"><i class="fa-solid fa-book-open-reader mr-2"></i>Illyrium Reader</h1>
+                    <h1 class="text-2xl font-black tracking-tight text-pastel-pink"><i class="fa-solid fa-book-open-reader mr-2"></i>Illyrium Reader</h1>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Control total de capítulos</p>
                 </div>
                 <button onclick="openSettings()" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 active:scale-95 transition">
@@ -57,8 +64,8 @@
             </header>
 
             <div class="px-6 py-4 shrink-0">
-                <label for="file-input" class="flex flex-col items-center justify-center border-2 border-dashed border-wattpad-orange/50 dark:border-wattpad-orange/40 rounded-2xl p-6 bg-orange-50/50 dark:bg-wattpad-orange/5 cursor-pointer hover:bg-orange-100/50 transition">
-                    <div class="w-12 h-12 rounded-full bg-wattpad-orange text-white flex items-center justify-center text-xl shadow-lg shadow-wattpad-orange/30 mb-2">
+                <label for="file-input" class="flex flex-col items-center justify-center border-2 border-dashed border-pastel-pink/50 dark:border-pastel-pink/40 rounded-2xl p-6 bg-pink-50/50 dark:bg-pastel-pink/5 cursor-pointer hover:bg-pink-100/50 transition">
+                    <div class="w-12 h-12 rounded-full bg-pastel-pink text-gray-900 flex items-center justify-center text-xl shadow-lg shadow-pastel-pink/30 mb-2">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
                     <span class="text-sm font-bold text-gray-700 dark:text-gray-200">Subir Archivo JSON</span>
@@ -75,14 +82,14 @@
 
         <!-- VISTA 2: SELECTOR / CURADOR DE CAPÍTULOS -->
         <div id="view-selector" class="hidden flex-1 flex flex-col h-full overflow-hidden">
-            <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur shrink-0 z-10">
+            <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-pastel-reader/90 backdrop-blur shrink-0 z-10">
                 <div class="flex items-center">
                     <button onclick="goLibrary()" class="mr-4 text-lg text-gray-600 dark:text-gray-300"><i class="fa-solid fa-arrow-left"></i></button>
                     <h2 class="text-base font-bold">Selecciona los Capítulos</h2>
                 </div>
-                <button onclick="saveCuratedBook()" class="px-3 py-1.5 bg-wattpad-orange text-white text-xs font-bold rounded-xl shadow-md">Guardar Libro</button>
+                <button onclick="saveCuratedBook()" class="px-3 py-1.5 bg-pastel-pink text-gray-900 text-xs font-bold rounded-xl shadow-md">Guardar Libro</button>
             </div>
-            <div class="px-6 py-3 bg-orange-50 dark:bg-wattpad-orange/10 border-b border-orange-100 dark:border-wattpad-orange/20 text-xs text-wattpad-orange font-medium shrink-0">
+            <div class="px-6 py-3 bg-pink-50 dark:bg-pastel-pink/10 border-b border-pink-100 dark:border-pastel-pink/20 text-xs text-pastel-darkpink font-medium shrink-0">
                 Se han filtrado las respuestas del asistente. Revisa y desmarca bloques innecesarios si lo deseas.
             </div>
             <div class="px-6 py-4 flex-1 overflow-y-auto space-y-3" id="selector-list"></div>
@@ -90,7 +97,7 @@
 
         <!-- VISTA 3: ÍNDICE -->
         <div id="view-toc" class="hidden flex-1 flex flex-col h-full overflow-hidden">
-            <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-wattpad-reader backdrop-blur shrink-0 z-10">
+            <div class="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-pastel-reader backdrop-blur shrink-0 z-10">
                 <div class="flex items-center truncate pr-2">
                     <button onclick="goLibrary()" class="mr-4 text-lg text-gray-600 dark:text-gray-300"><i class="fa-solid fa-arrow-left"></i></button>
                     <h2 id="toc-book-title" class="text-lg font-bold truncate">Título</h2>
@@ -103,9 +110,9 @@
         </div>
 
         <!-- VISTA 4: LECTOR -->
-        <div id="view-reader" class="hidden flex-1 flex flex-col h-full relative bg-white dark:bg-wattpad-reader overflow-hidden">
+        <div id="view-reader" class="hidden flex-1 flex flex-col h-full relative bg-white dark:bg-pastel-reader overflow-hidden">
             <!-- Header Superior -->
-            <div id="reader-header" class="absolute top-0 left-0 right-0 px-6 py-4 flex items-center justify-between bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 z-30 transition-transform duration-300">
+            <div id="reader-header" class="absolute top-0 left-0 right-0 px-6 py-4 flex items-center justify-between bg-white/90 dark:bg-pastel-reader/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 z-30 transition-transform duration-300">
                 <div class="flex items-center space-x-3">
                     <button onclick="goToc()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-list"></i></button>
                     <button onclick="goLibrary()" class="text-gray-600 dark:text-gray-300 text-base" title="Ir al Home"><i class="fa-solid fa-house"></i></button>
@@ -115,15 +122,15 @@
             </div>
 
             <!-- Contenedor del lector sin scrollbar visible pero totalmente deslizable -->
-            <div id="reader-container" onscroll="handleScroll()" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
+            <div id="reader-container" onscroll="handleScroll()" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
 
             <!-- Footer / Controles inferiores -->
-            <div id="reader-footer" class="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-wattpad-reader/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex flex-col px-6 py-3 z-30 transition-transform duration-300 space-y-2">
+            <div id="reader-footer" class="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-pastel-reader/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex flex-col px-6 py-3 z-30 transition-transform duration-300 space-y-2">
                 
                 <!-- Barra de Progreso horizontal (Scrollbar inferior interactiva) -->
                 <div class="flex items-center space-x-3">
                     <span id="scroll-percent" class="text-[10px] text-gray-400 font-mono w-8 text-right">0%</span>
-                    <input type="range" id="chapter-scrollbar" min="0" max="100" value="0" step="0.1" oninput="onSliderScroll(this.value)" class="w-full accent-wattpad-orange cursor-pointer h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                    <input type="range" id="chapter-scrollbar" min="0" max="100" value="0" step="0.1" oninput="onSliderScroll(this.value)" class="w-full accent-pastel-pink cursor-pointer h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg">
                 </div>
 
                 <!-- Botones de navegación y selector rápido de capítulos -->
@@ -134,14 +141,14 @@
                     <select id="bottom-chapter-select" onchange="openReader(parseInt(this.value))" class="bg-gray-100 dark:bg-gray-800 text-xs font-bold px-3 py-1.5 rounded-xl border-none outline-none max-w-[140px] truncate cursor-pointer">
                     </select>
 
-                    <button onclick="nextChapter()" class="px-3 py-1.5 text-xs font-bold bg-wattpad-orange text-white rounded-xl active:scale-95 transition">Siguiente <i class="fa-solid fa-chevron-right ml-1"></i></button>
+                    <button onclick="nextChapter()" class="px-3 py-1.5 text-xs font-bold bg-pastel-pink text-gray-900 rounded-xl active:scale-95 transition">Siguiente <i class="fa-solid fa-chevron-right ml-1"></i></button>
                 </div>
             </div>
         </div>
 
         <!-- MODAL AJUSTES -->
         <div id="modal-settings" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
-            <div class="bg-white dark:bg-wattpad-card w-full max-w-md rounded-t-3xl p-6 space-y-5">
+            <div class="bg-white dark:bg-pastel-card w-full max-w-md rounded-t-3xl p-6 space-y-5">
                 <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
                     <h3 class="font-bold text-lg">Ajustes de Lectura</h3>
                     <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -150,7 +157,7 @@
                     <label class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Tema</label>
                     <div class="grid grid-cols-3 gap-3">
                         <button onclick="setTheme('light')" class="py-2.5 bg-white text-gray-800 border border-gray-300 rounded-xl font-bold text-xs shadow-sm">Claro</button>
-                        <button onclick="setTheme('dark')" class="py-2.5 bg-wattpad-dark text-white border border-gray-700 rounded-xl font-bold text-xs">Oscuro</button>
+                        <button onclick="setTheme('dark')" class="py-2.5 bg-pastel-dark text-white border border-gray-700 rounded-xl font-bold text-xs">Oscuro</button>
                         <button onclick="setTheme('sepia')" class="py-2.5 bg-[#f4ecd8] text-[#5f4b32] border border-[#d8ccc0] rounded-xl font-bold text-xs">Sepia</button>
                     </div>
                 </div>
@@ -214,7 +221,7 @@
                 app.classList.add('bg-white', 'text-gray-900');
             } else if (readerSettings.theme === 'dark') {
                 htmlEl.classList.add('dark');
-                app.classList.add('bg-wattpad-reader', 'text-gray-100');
+                app.classList.add('bg-pastel-reader', 'text-gray-100');
             } else if (readerSettings.theme === 'sepia') {
                 app.classList.add('bg-[#f4ecd8]', 'text-[#5f4b32]');
             }
@@ -301,10 +308,10 @@
 
             const listEl = document.getElementById('selector-list');
             listEl.innerHTML = tempExtractedItems.map((item, idx) => `
-                <div class="p-3 bg-white dark:bg-wattpad-card rounded-2xl border ${item.selected ? 'border-wattpad-orange' : 'border-gray-200 dark:border-gray-800 opacity-60'} flex items-start space-x-3 transition">
-                    <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleItemSelection(${idx})" class="mt-1 w-5 h-5 accent-wattpad-orange rounded cursor-pointer">
+                <div class="p-3 bg-white dark:bg-pastel-card rounded-2xl border ${item.selected ? 'border-pastel-pink' : 'border-gray-200 dark:border-gray-800 opacity-60'} flex items-start space-x-3 transition">
+                    <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleItemSelection(${idx})" class="mt-1 w-5 h-5 accent-pastel-pink rounded cursor-pointer">
                     <div class="flex-1 cursor-pointer" onclick="toggleItemSelection(${idx})">
-                        <span class="text-xs font-bold text-wattpad-orange block mb-1">Capítulo / Bloque #${idx + 1}</span>
+                        <span class="text-xs font-bold text-pastel-darkpink block mb-1">Capítulo / Bloque #${idx + 1}</span>
                         <p class="text-xs line-clamp-3 text-gray-700 dark:text-gray-300">${item.text}</p>
                     </div>
                 </div>
@@ -350,15 +357,15 @@
             listEl.innerHTML = saved.map((book, index) => {
                 const progress = (book.lastChapterIndex || 0) + 1;
                 return `
-                <div onclick="loadBook(${index})" class="flex items-center justify-between p-4 bg-white dark:bg-wattpad-card rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm cursor-pointer active:scale-98 transition">
+                <div onclick="loadBook(${index})" class="flex items-center justify-between p-4 bg-white dark:bg-pastel-card rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm cursor-pointer active:scale-98 transition">
                     <div class="flex items-center space-x-3 truncate">
-                        <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-wattpad-orange/20 text-wattpad-orange flex items-center justify-center font-bold"><i class="fa-solid fa-book"></i></div>
+                        <div class="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pastel-pink/20 text-pastel-darkpink flex items-center justify-center font-bold"><i class="fa-solid fa-book"></i></div>
                         <div class="truncate">
                             <h3 class="font-bold text-sm truncate">${book.title}</h3>
                             <p class="text-xs text-gray-400">Progreso: Cap. ${progress} de ${book.chapters.length}</p>
                         </div>
                     </div>
-                    <button onclick="event.stopPropagation(); deleteBook(${index})" class="text-gray-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                    <button onclick="event.stopPropagation(); deleteBook(${index})" class="text-gray-400 hover:text-red-400 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
                 </div>
             `;
             }).join('');
@@ -396,7 +403,7 @@
             document.getElementById('toc-book-title').innerText = currentBook.title;
             const listEl = document.getElementById('toc-chapters-list');
             listEl.innerHTML = currentBook.chapters.map((ch, idx) => `
-                <div onclick="openReader(${idx})" class="py-3.5 px-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition ${idx === currentBook.lastChapterIndex ? 'text-wattpad-orange font-bold' : ''}">
+                <div onclick="openReader(${idx})" class="py-3.5 px-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition ${idx === currentBook.lastChapterIndex ? 'text-pastel-darkpink font-bold' : ''}">
                     <span class="text-sm truncate pr-4">${ch.title}</span>
                     ${idx === currentBook.lastChapterIndex ? '<i class="fa-solid fa-bookmark text-xs"></i>' : '<i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>'}
                 </div>
@@ -415,7 +422,6 @@
             document.getElementById('view-selector').classList.add('hidden');
             document.getElementById('view-reader').classList.remove('hidden');
             
-            // Poblar el selector de capítulos inferior
             const selectEl = document.getElementById('bottom-chapter-select');
             selectEl.innerHTML = currentBook.chapters.map((ch, idx) => `
                 <option value="${idx}" ${idx === currentChapterIndex ? 'selected' : ''}>${ch.title}</option>
@@ -450,7 +456,6 @@
             });
         }
 
-        // Actualizar barra horizontal inferior y porcentaje mientras se lee
         function handleScroll() {
             if (isSyncingSlider) return;
             const container = document.getElementById('reader-container');
@@ -482,7 +487,6 @@
             percentLabel.innerText = Math.round(percent) + '%';
         }
 
-        // Mover el slider horizontalmente desplaza el texto del capítulo en tiempo real
         function onSliderScroll(val) {
             isSyncingSlider = true;
             const container = document.getElementById('reader-container');
