@@ -105,27 +105,43 @@
         <!-- VISTA 4: LECTOR -->
         <div id="view-reader" class="hidden flex-1 flex flex-col h-full relative bg-white dark:bg-pastel-reader overflow-hidden">
             
-            <!-- Sidebar de Capítulos (Deslizable tipo Sidebar) -->
+            <!-- Botón flotante para guardar selección como Nota -->
+            <div id="selection-tooltip" class="hidden absolute z-40 bg-pastel-card text-white px-3 py-1.5 rounded-xl shadow-xl flex items-center space-x-2 border border-gray-700">
+                <button onclick="saveSelectedTextAsNote()" class="text-xs font-bold text-pastel-pink flex items-center"><i class="fa-solid fa-note-sticky mr-1.5"></i> Guardar Nota</button>
+            </div>
+
+            <!-- Sidebar de Capítulos y Notas (Deslizable tipo Sidebar) -->
             <div id="chapter-sidebar" class="absolute inset-y-0 left-0 w-72 bg-white dark:bg-pastel-card shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 flex flex-col border-r border-gray-200 dark:border-gray-800">
                 <div class="px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
-                    <h3 class="font-bold text-sm text-pastel-pink">Índice de Capítulos</h3>
+                    <h3 class="font-bold text-sm text-pastel-pink">Menú del Libro</h3>
                     <button onclick="toggleChapterSidebar()" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
                 </div>
-                <div id="sidebar-chapters-list" class="flex-1 overflow-y-auto p-3 space-y-1"></div>
+                
+                <!-- Pestañas de navegación del Sidebar -->
+                <div class="flex border-b border-gray-100 dark:border-gray-800 text-xs font-bold">
+                    <button onclick="switchSidebarTab('chapters')" id="tab-chapters-btn" class="flex-1 py-2.5 text-center text-pastel-pink border-b-2 border-pastel-pink">Capítulos</button>
+                    <button onclick="switchSidebarTab('notes')" id="tab-notes-btn" class="flex-1 py-2.5 text-center text-gray-400 border-b-2 border-transparent">Notas (<span id="notes-count">0</span>)</button>
+                </div>
+
+                <!-- Contenido de Pestañas -->
+                <div class="flex-1 overflow-y-auto p-3">
+                    <div id="sidebar-chapters-list" class="space-y-1"></div>
+                    <div id="sidebar-notes-list" class="space-y-2 hidden"></div>
+                </div>
             </div>
 
             <!-- Header Superior -->
             <div id="reader-header" class="absolute top-0 left-0 right-0 px-6 py-4 flex items-center justify-between bg-white/90 dark:bg-pastel-reader/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 z-30 transition-transform duration-300">
                 <div class="flex items-center space-x-3">
-                    <button onclick="toggleChapterSidebar()" class="text-gray-600 dark:text-gray-300 text-lg" title="Ver Capítulos"><i class="fa-solid fa-list-ul"></i></button>
+                    <button onclick="toggleChapterSidebar()" class="text-gray-600 dark:text-gray-300 text-lg" title="Ver Menú"><i class="fa-solid fa-list-ul"></i></button>
                     <button onclick="goLibrary()" class="text-gray-600 dark:text-gray-300 text-base" title="Ir al Home"><i class="fa-solid fa-house"></i></button>
                 </div>
                 <span id="reader-chapter-title" class="text-xs font-bold truncate max-w-[150px] text-center">Capítulo</span>
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
-            <!-- Contenedor del lector con escucha de scroll en tiempo real -->
-            <div id="reader-container" onscroll="handleScroll()" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
+            <!-- Contenedor del lector con escucha de scroll y selección de texto -->
+            <div id="reader-container" onscroll="handleScroll()" onmouseup="handleTextSelection()" ontouchend="handleTextSelection()" onclick="toggleReaderControls()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
 
             <!-- Footer / Controles inferiores con barra horizontal -->
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/95 dark:bg-pastel-reader/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex flex-col z-30 transition-transform duration-300 space-y-2">
@@ -182,13 +198,14 @@
     </div>
 
     <script>
-        let currentBook = { title: "Sin título", chapters: [], lastChapterIndex: 0, scrollPositions: {} };
+        let currentBook = { title: "Sin título", chapters: [], lastChapterIndex: 0, scrollPositions: {}, notes: [] };
         let tempExtractedItems = [];
         let currentChapterIndex = 0;
         let readerSettings = { theme: 'dark', fontSize: 17, font: 'sans' };
         let controlsVisible = true;
         let scrollTimeout = null;
         let isSyncingSlider = false;
+        let selectedTextToSave = "";
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedSettings = localStorage.getItem('reader_settings');
@@ -241,15 +258,55 @@
             const sidebar = document.getElementById('chapter-sidebar');
             sidebar.classList.toggle('-translate-x-full');
             if (!sidebar.classList.contains('-translate-x-full')) {
-                renderSidebarChapters();
+                renderSidebarContent();
             }
         }
 
-        function renderSidebarChapters() {
+        function switchSidebarTab(tab) {
+            const chaptersBtn = document.getElementById('tab-chapters-btn');
+            const notesBtn = document.getElementById('tab-notes-btn');
+            const chaptersList = document.getElementById('sidebar-chapters-list');
+            const notesList = document.getElementById('sidebar-notes-list');
+
+            if (tab === 'chapters') {
+                chaptersBtn.className = "flex-1 py-2.5 text-center text-pastel-pink border-b-2 border-pastel-pink";
+                notesBtn.className = "flex-1 py-2.5 text-center text-gray-400 border-b-2 border-transparent";
+                chaptersList.classList.remove('hidden');
+                notesList.classList.add('hidden');
+            } else {
+                notesBtn.className = "flex-1 py-2.5 text-center text-pastel-pink border-b-2 border-pastel-pink";
+                chaptersBtn.className = "flex-1 py-2.5 text-center text-gray-400 border-b-2 border-transparent";
+                notesList.classList.remove('hidden');
+                chaptersList.classList.add('hidden');
+            }
+        }
+
+        function renderSidebarContent() {
+            // Renderizar Capítulos
             const listEl = document.getElementById('sidebar-chapters-list');
             listEl.innerHTML = currentBook.chapters.map((ch, idx) => `
                 <div onclick="openReaderFromSidebar(${idx})" class="p-2.5 rounded-xl cursor-pointer text-xs truncate transition ${idx === currentChapterIndex ? 'bg-pastel-pink/20 text-pastel-pink font-bold' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'}">
                     ${ch.title}
+                </div>
+            `).join('');
+
+            // Renderizar Notas
+            if (!currentBook.notes) currentBook.notes = [];
+            document.getElementById('notes-count').innerText = currentBook.notes.length;
+            const notesEl = document.getElementById('sidebar-notes-list');
+            
+            if (currentBook.notes.length === 0) {
+                notesEl.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">No hay notas guardadas aún.</p>`;
+                return;
+            }
+
+            notesEl.innerHTML = currentBook.notes.map((note, idx) => `
+                <div class="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl relative group border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-bold text-pastel-pink">${note.chapterTitle}</span>
+                        <button onclick="deleteNote(${idx})" class="text-gray-400 hover:text-red-400 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                    <p class="text-xs text-gray-700 dark:text-gray-300 italic">"${note.text}"</p>
                 </div>
             `).join('');
         }
@@ -257,6 +314,47 @@
         function openReaderFromSidebar(index) {
             toggleChapterSidebar();
             openReader(index);
+        }
+
+        // Manejo de selección de texto para notas
+        function handleTextSelection() {
+            const selection = window.getSelection();
+            const text = selection.toString().trim();
+            const tooltip = document.getElementById('selection-tooltip');
+
+            if (text.length > 2) {
+                selectedTextToSave = text;
+                tooltip.classList.remove('hidden');
+            } else {
+                setTimeout(() => {
+                    if (!window.getSelection().toString().trim()) {
+                        tooltip.classList.add('hidden');
+                    }
+                }, 200);
+            }
+        }
+
+        function saveSelectedTextAsNote() {
+            if (!selectedTextToSave) return;
+            if (!currentBook.notes) currentBook.notes = [];
+
+            currentBook.notes.push({
+                text: selectedTextToSave,
+                chapterTitle: currentBook.chapters[currentChapterIndex].title,
+                date: new Date().toLocaleDateString()
+            });
+
+            saveBookToLocalStorage(currentBook);
+            document.getElementById('selection-tooltip').classList.add('hidden');
+            window.getSelection().removeAllRanges();
+            renderSidebarContent();
+            alert("¡Nota guardada con éxito!");
+        }
+
+        function deleteNote(index) {
+            currentBook.notes.splice(index, 1);
+            saveBookToLocalStorage(currentBook);
+            renderSidebarContent();
         }
 
         function handleFileSelect(event) {
@@ -316,7 +414,8 @@
                 title: globalTitle,
                 chapters: [],
                 lastChapterIndex: 0,
-                scrollPositions: {}
+                scrollPositions: {},
+                notes: []
             };
             renderSelectorView();
         }
@@ -357,6 +456,7 @@
             currentBook.chapters = selectedChapters;
             currentBook.lastChapterIndex = 0;
             currentBook.scrollPositions = {};
+            currentBook.notes = [];
             saveBookToLocalStorage(currentBook);
             openReader(0);
         }
@@ -396,6 +496,7 @@
             const saved = JSON.parse(localStorage.getItem('illyrium_books') || '[]');
             currentBook = saved[index];
             if (!currentBook.scrollPositions) currentBook.scrollPositions = {};
+            if (!currentBook.notes) currentBook.notes = [];
             const targetChapter = currentBook.lastChapterIndex || 0;
             openReader(targetChapter);
         }
