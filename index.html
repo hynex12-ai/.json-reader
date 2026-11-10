@@ -57,7 +57,7 @@
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                     </div>
                     <span class="text-sm font-bold text-gray-700 dark:text-gray-200">Subir Archivo JSON</span>
-                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Extracción automática de respuestas de Qwen</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Extracción automática de respuestas del asistente</span>
                     <input type="file" id="file-input" accept=".json,.txt" class="hidden" onchange="handleFileSelect(event)">
                 </label>
             </div>
@@ -108,6 +108,7 @@
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
+            <!-- Contenedor con ID explícito para controlar el scroll de forma fiable -->
             <div id="reader-container" onclick="toggleReaderControls()" class="flex-1 px-6 pt-20 pb-24 overflow-y-auto reader-content text-base selection:bg-wattpad-orange selection:text-white"></div>
 
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/90 dark:bg-wattpad-reader/90 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex items-center justify-between z-30 transition-transform duration-300">
@@ -124,7 +125,6 @@
                     <h3 class="font-bold text-lg">Ajustes de Lectura</h3>
                     <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
-                <!-- Modo Color -->
                 <div>
                     <label class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Tema</label>
                     <div class="grid grid-cols-3 gap-3">
@@ -133,7 +133,6 @@
                         <button onclick="setTheme('sepia')" class="py-2.5 bg-[#f4ecd8] text-[#5f4b32] border border-[#d8ccc0] rounded-xl font-bold text-xs">Sepia</button>
                     </div>
                 </div>
-                <!-- Selector de Fuentes -->
                 <div>
                     <label class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Tipografía</label>
                     <div class="grid grid-cols-3 gap-3">
@@ -142,7 +141,6 @@
                         <button onclick="setFontFamily('mono')" class="py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-mono-custom font-bold">Mono</button>
                     </div>
                 </div>
-                <!-- Tamaño de Letra -->
                 <div>
                     <label class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Tamaño de Letra</label>
                     <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-2 rounded-xl">
@@ -157,7 +155,7 @@
     </div>
 
     <script>
-        let currentBook = { title: "Sin título", chapters: [] };
+        let currentBook = { title: "Sin título", chapters: [], lastChapterIndex: 0 };
         let tempExtractedItems = [];
         let currentChapterIndex = 0;
         let readerSettings = { theme: 'dark', fontSize: 17, font: 'sans' };
@@ -182,12 +180,10 @@
         function applySettings() {
             localStorage.setItem('reader_settings', JSON.stringify(readerSettings));
             
-            // Gestión limpia de la clase dark a nivel de documento raíz y app
             const htmlEl = document.documentElement;
             const app = document.getElementById('app');
             const readerContainer = document.getElementById('reader-container');
 
-            // Limpieza de estados visuales anteriores
             app.className = "max-w-md mx-auto min-h-screen flex flex-col relative shadow-2xl transition-colors duration-300 ";
             htmlEl.classList.remove('dark');
 
@@ -200,7 +196,6 @@
                 app.classList.add('bg-[#f4ecd8]', 'text-[#5f4b32]');
             }
 
-            // Aplicar Tipografía
             readerContainer.classList.remove('font-sans-custom', 'font-serif-custom', 'font-mono-custom');
             if (readerSettings.font === 'sans') readerContainer.classList.add('font-sans-custom');
             else if (readerSettings.font === 'serif') readerContainer.classList.add('font-serif-custom');
@@ -304,8 +299,9 @@
             }
 
             currentBook.chapters = selectedChapters;
+            currentBook.lastChapterIndex = 0;
             saveBookToLocalStorage(currentBook);
-            openToc();
+            openReader(0); // Abrir directamente el primer capítulo
         }
 
         function saveBookToLocalStorage(book) {
@@ -322,24 +318,29 @@
                 listEl.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">No hay historias guardadas aún.</p>`;
                 return;
             }
-            listEl.innerHTML = saved.map((book, index) => `
+            listEl.innerHTML = saved.map((book, index) => {
+                const progress = (book.lastChapterIndex || 0) + 1;
+                return `
                 <div onclick="loadBook(${index})" class="flex items-center justify-between p-4 bg-white dark:bg-wattpad-card rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm cursor-pointer active:scale-98 transition">
                     <div class="flex items-center space-x-3 truncate">
                         <div class="w-10 h-10 rounded-xl bg-orange-100 dark:bg-wattpad-orange/20 text-wattpad-orange flex items-center justify-center font-bold"><i class="fa-solid fa-book"></i></div>
                         <div class="truncate">
                             <h3 class="font-bold text-sm truncate">${book.title}</h3>
-                            <p class="text-xs text-gray-400">${book.chapters.length} capítulos</p>
+                            <p class="text-xs text-gray-400">Progreso: Cap. ${progress} de ${book.chapters.length}</p>
                         </div>
                     </div>
                     <button onclick="event.stopPropagation(); deleteBook(${index})" class="text-gray-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function loadBook(index) {
             const saved = JSON.parse(localStorage.getItem('illyrium_books') || '[]');
             currentBook = saved[index];
-            openToc();
+            // Abre directamente en el último capítulo guardado (o 0 por defecto)
+            const targetChapter = currentBook.lastChapterIndex || 0;
+            openReader(targetChapter);
         }
 
         function deleteBook(index) {
@@ -366,9 +367,9 @@
             document.getElementById('toc-book-title').innerText = currentBook.title;
             const listEl = document.getElementById('toc-chapters-list');
             listEl.innerHTML = currentBook.chapters.map((ch, idx) => `
-                <div onclick="openReader(${idx})" class="py-3.5 px-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                    <span class="text-sm font-medium truncate pr-4">${ch.title}</span>
-                    <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                <div onclick="openReader(${idx})" class="py-3.5 px-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition ${idx === currentBook.lastChapterIndex ? 'text-wattpad-orange font-bold' : ''}">
+                    <span class="text-sm truncate pr-4">${ch.title}</span>
+                    ${idx === currentBook.lastChapterIndex ? '<i class="fa-solid fa-bookmark text-xs"></i>' : '<i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>'}
                 </div>
             `).join('');
         }
@@ -377,7 +378,13 @@
 
         function openReader(index) {
             currentChapterIndex = index;
+            currentBook.lastChapterIndex = index;
+            
+            // Guardar el progreso actual en localStorage inmediatamente
+            saveBookToLocalStorage(currentBook);
+
             document.getElementById('view-toc').classList.add('hidden');
+            document.getElementById('view-library').classList.add('hidden');
             document.getElementById('view-reader').classList.remove('hidden');
             renderChapter();
         }
@@ -386,16 +393,31 @@
             const chapter = currentBook.chapters[currentChapterIndex];
             document.getElementById('reader-chapter-title').innerText = chapter.title;
             document.getElementById('reader-progress').innerText = `${currentChapterIndex + 1} / ${currentBook.chapters.length}`;
-            document.getElementById('reader-container').innerHTML = marked.parse(chapter.text);
-            document.getElementById('reader-container').scrollTop = 0;
+            
+            // Renderizar contenido
+            const container = document.getElementById('reader-container');
+            container.innerHTML = marked.parse(chapter.text);
+            
+            // CORRECCIÓN CRÍTICA: Forzar el scroll exactamente al inicio de la caja del lector
+            container.scrollTop = 0;
         }
 
         function nextChapter() {
-            if (currentChapterIndex < currentBook.chapters.length - 1) { currentChapterIndex++; renderChapter(); }
+            if (currentChapterIndex < currentBook.chapters.length - 1) { 
+                currentChapterIndex++; 
+                currentBook.lastChapterIndex = currentChapterIndex;
+                saveBookToLocalStorage(currentBook);
+                renderChapter(); 
+            }
         }
 
         function prevChapter() {
-            if (currentChapterIndex > 0) { currentChapterIndex--; renderChapter(); }
+            if (currentChapterIndex > 0) { 
+                currentChapterIndex--; 
+                currentBook.lastChapterIndex = currentChapterIndex;
+                saveBookToLocalStorage(currentBook);
+                renderChapter(); 
+            }
         }
 
         function toggleReaderControls() {
