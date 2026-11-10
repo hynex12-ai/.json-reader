@@ -47,7 +47,7 @@
 </head>
 <body class="bg-gray-100 dark:bg-pastel-dark text-gray-800 dark:text-gray-200 font-sans-custom transition-colors duration-300 antialiased select-none overflow-hidden">
 
-    <!-- Contenedor general forzado a altura de pantalla exacta -->
+    <!-- Contenedor general -->
     <div id="app" class="max-w-md mx-auto h-[100dvh] flex flex-col relative bg-white dark:bg-pastel-reader shadow-2xl overflow-hidden">
 
         <!-- VISTA 1: BIBLIOTECA -->
@@ -120,13 +120,13 @@
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
-            <!-- Contenedor del lector sin scrollbar visible pero totalmente deslizable -->
-            <div id="reader-container" onclick="toggleReaderControls()" onscroll="handleScroll()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
+            <!-- Contenedor del lector -->
+            <div id="reader-container" onclick="toggleReaderControls()" onscroll="handleScroll()" class="flex-1 min-h-0 w-full px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900 block relative"></div>
 
             <!-- Footer / Controles inferiores -->
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-pastel-reader/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex flex-col px-6 py-3 z-30 transition-transform duration-300 space-y-2">
                 
-                <!-- Barra de Progreso horizontal (Scrollbar inferior interactiva) -->
+                <!-- Barra de Progreso horizontal -->
                 <div class="flex items-center space-x-3">
                     <span id="scroll-percent" class="text-[10px] text-gray-400 font-mono w-8 text-right">0%</span>
                     <input type="range" id="chapter-scrollbar" min="0" max="100" value="0" step="0.1" oninput="onSliderScroll(this.value)" class="w-full accent-pastel-pink cursor-pointer h-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg">
@@ -136,7 +136,7 @@
                 <div class="flex items-center justify-between">
                     <button onclick="prevChapter()" class="px-3 py-1.5 text-xs font-bold bg-gray-100 dark:bg-gray-800 rounded-xl active:scale-95 transition"><i class="fa-solid fa-chevron-left mr-1"></i> Anterior</button>
                     
-                    <!-- Selector rápido integrado en la barra inferior -->
+                    <!-- Selector rápido integrado -->
                     <select id="bottom-chapter-select" onchange="openReader(parseInt(this.value))" class="bg-gray-100 dark:bg-gray-800 text-xs font-bold px-3 py-1.5 rounded-xl border-none outline-none max-w-[140px] truncate cursor-pointer">
                     </select>
 
