@@ -142,8 +142,8 @@
                 <button onclick="openSettings()" class="text-gray-600 dark:text-gray-300 text-lg"><i class="fa-solid fa-sliders"></i></button>
             </div>
 
-            <!-- Contenedor del lector -->
-            <div id="reader-container" onscroll="handleScroll()" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
+            <!-- Contenedor del lector (con control táctil para alternar visibilidad de barras) -->
+            <div id="reader-container" onscroll="handleScroll()" onclick="handleReaderTap(event)" class="flex-1 min-h-0 px-6 pt-20 pb-28 overflow-y-auto reader-content text-base selection:bg-pastel-pink selection:text-gray-900"></div>
 
             <!-- Footer / Controles inferiores con barra horizontal -->
             <div id="reader-footer" class="absolute bottom-0 left-0 right-0 px-6 py-3 bg-white/95 dark:bg-pastel-reader/95 backdrop-blur border-t border-gray-200 dark:border-gray-800 flex flex-col z-30 transition-transform duration-300 space-y-2 select-none">
@@ -220,18 +220,43 @@
             initLongPressSelection();
         });
 
-        // MECANISMO TÁCTIL DE PULSACIÓN PROLONGADA (IDEAL PARA APK ANDROID)
+        // CONTROL TÁCTIL DE BARRAS (MOSTRAR / OCULTAR CON 1 TOQUE)
+        function handleReaderTap(event) {
+            // Si el sidebar de capítulos está abierto, cerralo con el primer toque
+            const sidebar = document.getElementById('chapter-sidebar');
+            if (!sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.add('-translate-x-full');
+                return;
+            }
+
+            // Si el usuario está seleccionando texto para notas, ignorar el toggle para no molestarlo
+            const selection = window.getSelection();
+            if (selection.toString().trim().length > 0) {
+                return;
+            }
+
+            toggleReaderControls();
+        }
+
+        function toggleReaderControls() {
+            const header = document.getElementById('reader-header');
+            const footer = document.getElementById('reader-footer');
+            if (controlsVisible) {
+                header.classList.add('-translate-y-full');
+                footer.classList.add('translate-y-full');
+            } else {
+                header.classList.remove('-translate-y-full');
+                footer.classList.remove('translate-y-full');
+            }
+            controlsVisible = !controlsVisible;
+        }
+
+        // MECANISMO TÁCTIL DE SELECCIÓN DE TEXTO PARA NOTAS
         function initLongPressSelection() {
             const container = document.getElementById('reader-container');
             
             container.addEventListener('touchstart', (e) => {
-                longPressTimer = setTimeout(() => {
-                    // Al mantener presionado 500ms, intentamos capturar la palabra o texto bajo el toque
-                    let sel = window.getSelection();
-                    if (!sel.toString().trim()) {
-                        // Si no hay selección activa, simulamos seleccionar la palabra cercana o permitimos la nativa
-                    }
-                }, 500);
+                longPressTimer = setTimeout(() => {}, 500);
             }, { passive: true });
 
             container.addEventListener('touchend', () => {
@@ -654,7 +679,7 @@
             percentLabel.innerText = Math.round(percent) + '%';
         }
 
-    function onSliderScroll(val) {
+        function onSliderScroll(val) {
             isSyncingSlider = true;
             const container = document.getElementById('reader-container');
             if (!container) return;
@@ -688,19 +713,6 @@
                 saveBookToLocalStorage(currentBook);
                 renderChapter(); 
             }
-        }
-
-        function toggleReaderControls() {
-            const header = document.getElementById('reader-header');
-            const footer = document.getElementById('reader-footer');
-            if (controlsVisible) {
-                header.classList.add('-translate-y-full');
-                footer.classList.add('translate-y-full');
-            } else {
-                header.classList.remove('-translate-y-full');
-                footer.classList.remove('translate-y-full');
-            }
-            controlsVisible = !controlsVisible;
         }
     </script>
 </body>
